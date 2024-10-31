@@ -1,67 +1,67 @@
 from __future__ import print_function
 from math import log10
+from PIL import Image
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from model import ESPCN
-# from model_ench import EnhancedESPCN as ESPCN
-from data import get_training_set, get_test_set
-
-from PIL import Image
 from torchvision.transforms import ToTensor
+
+# from model import ESPCN
+from model_ench import OptimizedESPCN as ESPCN
+# from model_ench import AltESPCN as ESPCN
+
+from data import getTrainingSet, getTestSet
 
 import optuna
 
-cuda = True
-threads = 10
-seed = 123
+# Hyperparameters
+# g_upscaleFactors = [ 2, 3, 4, 8 ]
+g_upscaleFactor = 2
+g_nEpochs = 100
+g_seed = 123
+g_cuda = False
 
-if cuda and not torch.cuda.is_available():
-    raise Exception("No GPU found, please run without cuda")
+# Device configuration
+device = torch.device("cuda" if g_cuda and torch.cuda.is_available() else "cpu")
+torch.manual_seed(g_seed)
 
-torch.manual_seed(seed)
+g_criterion = nn.MSELoss()
+g_model = ESPCN(upscaleFactor=g_upscaleFactor).to(device)
 
-if cuda:
-    device = torch.device("cuda")
-    torch.backends.cudnn.benchmark = False
-else:
-    device = torch.device("cpu")
 
-def train(epoch, training_data_loader, optimizer, criterion, model):
-    epoch_loss = 0
-    for iteration, batch in enumerate(training_data_loader, 1):
+def train(epoch, trainingDataLoader, optimizer):
+    epochLoss = 0
+    for iteration, batch in enumerate(trainingDataLoader, 1):
         input, target = batch[0].to(device), batch[1].to(device)
 
         optimizer.zero_grad()
-        loss = criterion(model(input), target)
-        epoch_loss += loss.item()
+        output = g_model(input)
+        loss = g_criterion(output, target)
+        epochLoss += loss.item()
         loss.backward()
         optimizer.step()
 
-        print("===> Epoch[{}]({}/{}): Loss: {:.4f}".format(epoch, iteration, len(training_data_loader), loss.item()))
+        print("===> Epoch[{}/{}]({}/{}): Loss: {:.4f}".format(epoch, g_nEpochs, iteration, len(trainingDataLoader), loss.item()))
 
-    print("===> Epoch {} Complete: Avg. Loss: {:.4f}".format(epoch, epoch_loss / len(training_data_loader)))
-    return epoch_loss / len(training_data_loader)
+    print("===> Epochs {}/{} Complete: Avg. Loss: {:.4f}".format(epoch, g_nEpochs, epochLoss / len(trainingDataLoader)))
+    return epochLoss / len(trainingDataLoader)
 
 
 def objective(trial):
-    lr = trial.suggest_loguniform('lr', 1e-5, 1e-1)
-    batch_size = trial.suggest_categorical('batch_size', [16, 32, 64, 128])
-    upscale_factor=2
-    model = ESPCN(upscale_factor=upscale_factor).to(device)
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=lr)
-    train_set = get_training_set(upscale_factor)
-    dataloader = DataLoader(dataset=train_set, batch_size=batch_size)
+    lr = trial.suggest_float('lr', 1e-9, 1e-1, log=True)
+    batchSize = trial.suggest_categorical('batch_size', [16, 32, 64, 128])
+    optimizer = optim.Adam(g_model.parameters(), lr=lr)
+    trainSet = getTrainingSet(g_upscaleFactor)
+    dataloader = DataLoader(dataset=trainSet, batch_size=batchSize)
 
-    final_validation_loss = train(50, dataloader, optimizer, criterion, model)
+    finalValidationLoss = train(g_nEpochs, dataloader, optimizer)
 
-    return final_validation_loss  # return the validation loss
+    return finalValidationLoss  # return the validation loss
 
 def main():
-    study = optuna.create_study(direction='minimize')
+    study = optuna.create_study()
     study.optimize(objective, n_trials=100)  # perform the hyperparameter tuning
 
     print('Best trial:')

@@ -8,23 +8,31 @@ from torchvision import transforms
 
 import numpy as np
 
+# Load model from file
+model = torch.load('2x_espcn_epoch_50.pth')
+
 # Training settings
-input_image = 'E:/SAVVA/STUDY/CUDA/ESPCN-PY/pythonProject/dataset/BSDS300/images/test/45096.jpg'
-img = Image.open(input_image).convert('YCbCr')
-y, cb, cr = img.split()
-img_to_tensor = ToTensor()
-input = img_to_tensor(y).view(1, -1, y.size[1], y.size[0]).cuda()
+inputImage = '/Users/milord/Documents/STUDY/GQW/ESPCN_PYTORCH/dataset/BSDS300/images/train/2092.jpg'
+image = Image.open(inputImage).convert('YCbCr')
+y, cb, cr = image.split()
+imageToTensor = ToTensor()
+input = imageToTensor(y).view(1, -1, y.size[1], y.size[0])
+if torch.cuda.is_available():
+    model = model.cuda()
+    input = imageToTensor(y).view(1, -1, y.size[1], y.size[0]).cuda()
 
-out = model(input)
-out = out.cpu()
-out_img_y = out[0].detach().numpy()
-out_img_y *= 255.0
-out_img_y = out_img_y.clip(0, 255)
-out_img_y = Image.fromarray(np.uint8(out_img_y[0]), mode='L')
+if __name__ == '__main__':
 
-out_img_cb = cb.resize(out_img_y.size, Image.BICUBIC)
-out_img_cr = cr.resize(out_img_y.size, Image.BICUBIC)
-out_img = Image.merge('YCbCr', [out_img_y, out_img_cb, out_img_cr]).convert('RGB')
+    out = model(input)
+    out = out.cpu()
+    outImageY = out[0].detach().numpy()
+    outImageY *= 255.0
+    outImageY = outImageY.clip(0, 255)
+    outImageY = Image.fromarray(np.uint8(outImageY[0]), mode='L')
 
-out_img.save("output.jpg")
-print('output image saved')
+    outImageCB = cb.resize(outImageY.size, Image.LANCZOS)
+    outImageCR = cr.resize(outImageY.size, Image.LANCZOS)
+    outImage = Image.merge('YCbCr', [outImageY, outImageCB, outImageCR]).convert('RGB')
+
+    outImage.save("output.jpg")
+    print('output image saved')

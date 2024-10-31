@@ -4,15 +4,15 @@ import torch.nn.init as init
 
 
 class ESPCN(nn.Module):
-    def __init__(self, upscale_factor, num_channels=1):
+    def __init__(self, upscaleFactor=2, numChannels=1):
         super(ESPCN, self).__init__()
 
         self.relu = nn.ReLU()
-        self.conv1 = nn.Conv2d(num_channels, 64, (5, 5), (1, 1), (2, 2))
+        self.conv1 = nn.Conv2d(numChannels, 64, (5, 5), (1, 1), (2, 2))
         self.conv2 = nn.Conv2d(64, 64, (3, 3), (1, 1), (1, 1))
         self.conv3 = nn.Conv2d(64, 32, (3, 3), (1, 1), (1, 1))
-        self.conv4 = nn.Conv2d(32, num_channels * (upscale_factor ** 2), (3, 3), (1, 1), (1, 1))
-        self.pixel_shuffle = nn.PixelShuffle(upscale_factor)
+        self.conv4 = nn.Conv2d(32, numChannels * (upscaleFactor ** 2), (3, 3), (1, 1), (1, 1))
+        self.pixelShuffle = nn.PixelShuffle(upscaleFactor)
 
         self._initialize_weights()
 
@@ -20,7 +20,7 @@ class ESPCN(nn.Module):
         x = self.relu(self.conv1(x))
         x = self.relu(self.conv2(x))
         x = self.relu(self.conv3(x))
-        x = self.pixel_shuffle(self.conv4(x))
+        x = self.pixelShuffle(self.conv4(x))
         return x
 
     def _initialize_weights(self):

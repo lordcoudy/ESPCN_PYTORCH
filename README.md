@@ -2,6 +2,18 @@
 
 Simple implementation of ESPCN in PyTorch.
 
-## Usage
+## Tuning
+To get the best learning rate
+```commandline
+python tuning.py
+```
 
-```python main.py```
+## Training
+```commandline
+python run.py
+```
+
+## Demo
+```commandline
+python demo.py
+```
