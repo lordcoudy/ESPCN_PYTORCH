@@ -12,7 +12,7 @@ import numpy as np
 model = torch.load('2x_espcn_epoch_50.pth')
 
 # Training settings
-inputImage = '/Users/milord/Documents/STUDY/GQW/ESPCN_PYTORCH/dataset/BSDS300/images/train/2092.jpg'
+inputImage = 'E:\\SAVVA\\STUDY\\CUDA\\ESPCN_PYTORCH\\dataset\\BSDS300\\images\\test\\3096.jpg'
 image = Image.open(inputImage).convert('YCbCr')
 y, cb, cr = image.split()
 imageToTensor = ToTensor()

@@ -4,6 +4,7 @@ import time
 from math import log10
 import matplotlib.pyplot as plt
 import numpy as np
+import progress.bar
 
 import torch
 import torch.nn as nn
@@ -22,17 +23,17 @@ from model_ench import AltESPCN as espcn
 # from model_ench import OptimizedESPCN as espcn
 
 # Hyperparameters
-g_inputPath = '/Users/milord/Documents/STUDY/GQW/ESPCN_PYTORCH/dataset/BSDS300/images/test/3096.jpg'
+g_inputPath = 'E:\\SAVVA\\STUDY\\CUDA\\ESPCN_PYTORCH\\dataset\\BSDS300\\images\\test\\3096.jpg'
 # g_upscaleFactors = [ 2, 3, 4, 8 ]
 g_upscaleFactors = [2]
 g_batchSize = 16
 g_testBatchSize = 16
-g_nEpochs = 50
-g_epochLosses = np.zeros(g_nEpochs)
-g_lr = 9.621845282082029e-05
+g_nEpochs = 1000
+g_epochLosses = np.zeros(g_nEpochs+1)
+g_lr = 0.0268712201875209
 g_threads = 8
 g_seed = 123
-g_cuda = False
+g_cuda = True
 
 # Device configuration
 device = torch.device("cuda" if g_cuda and torch.cuda.is_available() else "cpu")
@@ -40,7 +41,7 @@ torch.manual_seed(g_seed)
 
 g_criterion = nn.MSELoss()
 # Training with mixed precision and scheduler
-g_scaler = torch.cuda.amp.GradScaler() if torch.cuda.is_available() else None
+g_scaler = torch.amp.GradScaler('cuda') if torch.cuda.is_available() else None
 
 def prepareData(upscaleFactor):
     print('===> Loading datasets >===')
@@ -95,24 +96,6 @@ def pruneModel(model, amount=0.2):
         amount=amount,
     )
 
-def train(model, optimizer, trainingDataLoader, epoch):
-    model.train()
-    epochLoss = 0
-    for iteration, batch in enumerate(trainingDataLoader, 1):
-        input_tensor, target_tensor = batch[0].to(device), batch[1].to(device)
-
-        optimizer.zero_grad()
-        output = model(input_tensor)
-        loss = g_criterion(output, target_tensor)
-        epochLoss += loss.item()
-        loss.backward()
-        optimizer.step()
-
-        print(f"===> Epoch [{epoch}/{g_nEpochs}] ({iteration}/{len(trainingDataLoader)}): Loss: {loss.item():.4f} >===")
-
-
-    print(f"===> Epoch {epoch} Complete: Avg. Loss: {epochLoss / len(trainingDataLoader):.4f} >===")
-
 def test(model, testingDataLoader):
     model.eval()
     avgPSNR = 0
@@ -136,7 +119,11 @@ def trainModel(model, dataloader, testloader, criterion, optimizer, scheduler, e
     model.train()
     for epoch in range(epochs+1):
         epochLoss = 0
+        bar = progress.bar.IncrementalBar(f'Epoch {epoch+1}', max=g_batchSize)
+        bar.start()
         for data, target in dataloader:
+            data, target = data.to(device), target.to(device)
+            bar.next()
             optimizer.zero_grad()
 
             # Mixed precision for GPU training
@@ -145,7 +132,7 @@ def trainModel(model, dataloader, testloader, criterion, optimizer, scheduler, e
                 mse = F.mse_loss(output, target)
                 percLoss = perceptualLoss(output, target)
                 loss = mse + 0.1 * percLoss  # Combining losses
-                loss = criterion(output, target)
+                # loss = criterion(output, target)
 
             if scaler:
                 scaler.scale(loss).backward()
@@ -158,6 +145,8 @@ def trainModel(model, dataloader, testloader, criterion, optimizer, scheduler, e
             epochLoss += loss.item()
             g_epochLosses[epoch]=epochLoss
 
+        bar.finish()
+
         # Learning rate decay
         scheduler.step()
         if epoch in [25, 50, 100, 200, 500, 1000, 2000]:
@@ -168,6 +157,7 @@ def trainModel(model, dataloader, testloader, criterion, optimizer, scheduler, e
             f"Epoch {epoch + 1}/{epochs}, Loss: {epochLoss / len(dataloader):.6f}, LR: {scheduler.get_last_lr()[0]:.12f}")
 
 def main():
+    print("Cuda is available: ", torch.cuda.is_available())
     for upscaleFactor in g_upscaleFactors:
         print(f"===> Upscale factor: {upscaleFactor} | Epochs: {g_nEpochs} >===")
         # Data loaders

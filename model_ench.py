@@ -24,6 +24,9 @@ class OptimizedESPCN(nn.Module):
         self.conv3 = nn.Conv2d(32, numChannels * (upscaleFactor ** 2), kernel_size=3, padding=1)
         self.pixel_shuffle = nn.PixelShuffle(upscaleFactor)
 
+        # Initialize weights
+        self._initialize_weights()
+
     def forward(self, x):
         x = torch.relu(self.bn1(self.conv1(x)))
         x = torch.relu(self.bn2(self.conv2(x)))
@@ -34,7 +37,18 @@ class OptimizedESPCN(nn.Module):
 
         x = self.conv3(x)
         x = self.pixel_shuffle(x)
+        x = torch.clamp(x, 0.0, 1.0)  # Clamp output to valid image range
         return x
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
         
 
 class AltESPCN(nn.Module):
@@ -47,6 +61,8 @@ class AltESPCN(nn.Module):
         # Feature mapping
         self.featureMaps = nn.Sequential(
             nn.Conv2d(numChannels, channels, (5, 5), (1, 1), (2, 2)),
+            nn.Tanh(),
+            nn.Conv2d(channels, channels, (3, 3), (1, 1), (1, 1)),
             nn.Tanh(),
             nn.Conv2d(channels, hiddenChannels, (3, 3), (1, 1), (1, 1)),
             nn.Tanh(),
