@@ -1,5 +1,5 @@
 import torch.utils.data as data
-from torchvision.transforms import Compose, CenterCrop, ToTensor, Resize
+from torchvision.transforms import Compose, CenterCrop, ToTensor, Resize, InterpolationMode
 from os import listdir
 from os.path import exists, join, basename
 from os import makedirs, remove
@@ -70,7 +70,7 @@ def calculateValidCropSize(cropSize, upscaleFactor):
 def inputTransform(cropSize, upscaleFactor):
     return Compose([
         CenterCrop(cropSize),
-        Resize(cropSize // upscaleFactor),
+        Resize(size=cropSize // upscaleFactor, interpolation=InterpolationMode.LANCZOS),
         ToTensor(),
     ])
 

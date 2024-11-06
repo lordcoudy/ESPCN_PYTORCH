@@ -4,25 +4,12 @@ import optuna
 import torch
 import torch.optim as optim
 from data import getTrainingSet
-# from model import ESPCN as espcn
-from model_ench import OptimizedESPCN as espcn
-# from model_ench import AltESPCN as espcn
-from run import g_scaler
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 import torchvision.models as models
 from torchvision.models import VGG16_Weights
 
-
-# Hyperparameters
-# g_upscaleFactors = [ 2, 3, 4, 8 ]
-g_upscaleFactor = 2
-g_seed = 123
-g_cuda = True
-
-# Device configuration
-device = torch.device("cuda" if g_cuda and torch.cuda.is_available() else "cpu")
-torch.manual_seed(g_seed)
+from settings import device, scaler, dictionary, model
 
 
 def perceptualLoss(pred, target):
@@ -63,27 +50,20 @@ def trainModel(model, trainingDataLoader, optimizer, scaler=None):
 
 
 def objective(trial):
-    lr = trial.suggest_float('lr', 1e-9, 1e-1, log=True)
+    lr = trial.suggest_float('lr', 1e-9, 1e-4, log=True)
     batchSize = trial.suggest_categorical('batch_size', [16, 32, 64, 128])
-    trainSet = getTrainingSet(g_upscaleFactor)
+    trainSet = getTrainingSet(upscaleFactor=dictionary['upscale_factor'])
     dataloader = DataLoader(dataset=trainSet, batch_size=batchSize)
-    model = espcn(upscaleFactor=g_upscaleFactor, numChannels=1).to(device)
-    optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
-
-    finalValidationLoss = trainModel(model, dataloader, optimizer, g_scaler)
-
+    optimizer_tuning = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+    finalValidationLoss = trainModel(model, dataloader, optimizer_tuning, scaler)
     return finalValidationLoss  # return the validation loss
 
-def main():
+def tune():
     study = optuna.create_study()
-    study.optimize(objective, n_trials=100, show_progress_bar=True) # perform the hyperparameter tuning
-
+    study.optimize(objective, n_trials=dictionary['trials'], show_progress_bar=dictionary['show_progress_bar']) # perform the hyperparameter tuning
     print('Best trial:')
     trial = study.best_trial
     print('  Value: ', trial.value)
     print('  Params: ')
     for key, value in trial.params.items():
         print('    {}: {}'.format(key, value))
-
-if __name__ == '__main__':
-    main()
