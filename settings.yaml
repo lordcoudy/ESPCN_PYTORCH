@@ -1,17 +1,18 @@
 ---
-  input_path : '/Users/milord/Documents/STUDY/GQW/ESPCN_PYTORCH/dataset/BSDS300/images/test/3096.jpg'
-  output_path : '/Users/milord/Documents/STUDY/GQW/ESPCN_PYTORCH/results/'
+  input_path : 'E:/SAVVA/STUDY/CUDA/ESPCN_PYTORCH/dataset/BSDS300/images/test/3096.jpg'
+  output_path : 'E:/SAVVA/STUDY/CUDA/ESPCN_PYTORCH/results/'
   upscale_factor : 2
   batch_size : 16
-  test_batch_size : 16
-  epochs_number : 1000
-  learning_rate : 0.0001
+  test_batch_size : 8
+  epochs_number : 100
+  epoch : 50
+  learning_rate : 0.000000002783704007301683
   threads : 8
   seed : 123
-  cuda : false
-  mode : 'tune'
+  cuda : true
+  mode : 'train'
   trials : 100
   show_progress_bar : true
-  mixed_precision : false
-  model : 'Optimized'
-  model_path : '/Users/milord/Documents/STUDY/GQW/ESPCN_PYTORCH/models/'
+  mixed_precision : true
+  model : 'Base'
+  model_path : 'E:/SAVVA/STUDY/CUDA/ESPCN_PYTORCH/models/'

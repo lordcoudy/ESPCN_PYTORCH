@@ -7,96 +7,96 @@ from six.moves import urllib
 import tarfile
 from PIL import Image
 
-def isImageFile(filename):
+def is_image_file(filename):
     return any(filename.endswith(extension) for extension in [".png", ".jpg", ".jpeg"])
 
 
-def loadImg(filepath):
+def load_img(filepath):
     img = Image.open(filepath).convert('YCbCr')
     y, _, _ = img.split()
     return y
 
 
 class DatasetFromFolder(data.Dataset):
-    def __init__(self, imageDir, inTransform=None, tgtTransform=None):
+    def __init__(self, image_dir, in_transform=None, tgt_transform=None):
         super(DatasetFromFolder, self).__init__()
-        self.imageFilenames = [join(imageDir, x) for x in listdir(imageDir) if isImageFile(x)]
+        self.image_filenames = [join(image_dir, x) for x in listdir(image_dir) if is_image_file(x)]
 
-        self.inputTransform = inTransform
-        self.targetTransform = tgtTransform
+        self.input_transform = in_transform
+        self.target_transform = tgt_transform
 
     def __getitem__(self, index):
-        inImg = loadImg(self.imageFilenames[index])
-        target = inImg.copy()
-        if self.inputTransform:
-            inImg = self.inputTransform(inImg)
-        if self.targetTransform:
-            target = self.targetTransform(target)
+        in_img = load_img(self.image_filenames[index])
+        target = in_img.copy()
+        if self.input_transform:
+            in_img = self.input_transform(in_img)
+        if self.target_transform:
+            target = self.target_transform(target)
 
-        return inImg, target
+        return in_img, target
 
     def __len__(self):
-        return len(self.imageFilenames)
+        return len(self.image_filenames)
 
 
-def downloadBSD300(dest="dataset"):
-    outputImageDir = join(dest, "BSDS300/images")
+def download_bsd300(dest= "dataset"):
+    output_image_dir = join(dest, "BSDS300/images")
 
-    if not exists(outputImageDir):
+    if not exists(output_image_dir):
         makedirs(dest)
         url = "http://www2.eecs.berkeley.edu/Research/Projects/CS/vision/bsds/BSDS300-images.tgz"
         print("downloading url ", url)
 
         data = urllib.request.urlopen(url)
 
-        filePath = join(dest, basename(url))
-        with open(filePath, 'wb') as f:
+        file_path = join(dest, basename(url))
+        with open(file_path, 'wb') as f:
             f.write(data.read())
 
         print("Extracting data")
-        with tarfile.open(filePath) as tar:
+        with tarfile.open(file_path) as tar:
             for item in tar:
                 tar.extract(item, dest)
 
-        remove(filePath)
+        remove(file_path)
 
-    return outputImageDir
-
-
-def calculateValidCropSize(cropSize, upscaleFactor):
-    return cropSize - (cropSize % upscaleFactor)
+    return output_image_dir
 
 
-def inputTransform(cropSize, upscaleFactor):
+def calculate_valid_crop_size(crop_size, upscale_factor):
+    return crop_size - (crop_size % upscale_factor)
+
+
+def input_transform(crop_size, upscale_factor):
     return Compose([
-        CenterCrop(cropSize),
-        Resize(size=cropSize // upscaleFactor, interpolation=InterpolationMode.LANCZOS),
+        CenterCrop(crop_size),
+        Resize(size= crop_size // upscale_factor, interpolation=InterpolationMode.LANCZOS),
         ToTensor(),
     ])
 
 
-def targetTransform(cropSize):
+def target_transform(crop_size):
     return Compose([
-        CenterCrop(cropSize),
+        CenterCrop(crop_size),
         ToTensor(),
     ])
 
 
-def getTrainingSet(upscaleFactor):
-    rootDir = downloadBSD300()
-    trainDir = join(rootDir, "train")
-    cropSize = calculateValidCropSize(256, upscaleFactor)
+def get_training_set(upscale_factor):
+    root_dir = download_bsd300()
+    train_dir = join(root_dir, "train")
+    crop_size = calculate_valid_crop_size(256, upscale_factor)
 
-    return DatasetFromFolder(trainDir,
-                             inTransform=inputTransform(cropSize, upscaleFactor),
-                             tgtTransform=targetTransform(cropSize))
+    return DatasetFromFolder(train_dir,
+                             in_transform =input_transform(crop_size, upscale_factor),
+                             tgt_transform =target_transform(crop_size))
 
 
-def getTestSet(upscaleFactor):
-    rootDir = downloadBSD300()
-    testDir = join(rootDir, "test")
-    cropSize = calculateValidCropSize(256, upscaleFactor)
+def get_test_set(upscale_factor):
+    root_dir = download_bsd300()
+    test_dir = join(root_dir, "test")
+    crop_size = calculate_valid_crop_size(256, upscale_factor)
 
-    return DatasetFromFolder(testDir,
-                             inTransform=inputTransform(cropSize, upscaleFactor),
-                             tgtTransform=targetTransform(cropSize))
+    return DatasetFromFolder(test_dir,
+                             in_transform =input_transform(crop_size, upscale_factor),
+                             tgt_transform =target_transform(crop_size))

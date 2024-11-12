@@ -1,41 +1,43 @@
 from __future__ import print_function
+
+from os.path import exists
+
+import numpy as np
 import torch
 from PIL import Image
 from PIL.Image import Resampling
 from torchvision.transforms import ToTensor
-from torchvision import transforms
 
-# from torch2trt import torch2trt
 
-import numpy as np
+def run(settings):
+    # Load model from file
+    model_path = (settings.model_path + f"{settings.upscale_factor}x_epoch_{settings.epoch}_{settings.model_name}.pth")
+    model_available = exists(model_path)
+    if model_available:
+        model = torch.load(model_path)
+        # Training settings
+        input_image = settings.input_path
+        image = Image.open(input_image).convert('YCbCr')
+        y, cb, cr = image.split()
+        image_to_tensor = ToTensor()
+        input = image_to_tensor(y).view(1, -1, y.size[1], y.size[0])
+        if torch.cuda.is_available() and settings.cuda:
+            model = model.cuda()
+            input = image_to_tensor(y).view(1, -1, y.size[1], y.size[0]).cuda()
 
-from settings import dictionary
+        out = model(input)
+        out = out.cpu()
+        out_image_y = out[0].detach().numpy()
+        out_image_y *= 255.0
+        out_image_y = out_image_y.clip(0, 255)
+        out_image_y = Image.fromarray(np.uint8(out_image_y[0]), mode = 'L')
 
-# Load model from file
-modelPath = (dictionary['model_path'] + f"{dictionary['upscale_factor']}x_{dictionary['model']}.pth")
-model = torch.load(modelPath)
+        out_image_cb = cb.resize(out_image_y.size, Resampling.LANCZOS)
+        out_image_cr = cr.resize(out_image_y.size, Resampling.LANCZOS)
+        out_image = Image.merge('YCbCr', [out_image_y, out_image_cb, out_image_cr]).convert('RGB')
 
-# Training settings
-inputImage = dictionary['input_path']
-image = Image.open(inputImage).convert('YCbCr')
-y, cb, cr = image.split()
-imageToTensor = ToTensor()
-input = imageToTensor(y).view(1, -1, y.size[1], y.size[0])
-if torch.cuda.is_available() and dictionary['cuda']:
-    model = model.cuda()
-    input = imageToTensor(y).view(1, -1, y.size[1], y.size[0]).cuda()
-
-def run():
-    out = model(input)
-    out = out.cpu()
-    outImageY = out[0].detach().numpy()
-    outImageY *= 255.0
-    outImageY = outImageY.clip(0, 255)
-    outImageY = Image.fromarray(np.uint8(outImageY[0]), mode='L')
-
-    outImageCB = cb.resize(outImageY.size, Resampling.LANCZOS)
-    outImageCR = cr.resize(outImageY.size, Resampling.LANCZOS)
-    outImage = Image.merge('YCbCr', [outImageY, outImageCB, outImageCR]).convert('RGB')
-
-    outImage.save(dictionary['output_path']+f"{dictionary['upscale_factor']}x_{dictionary['model']}_output.png")
-    outImage.show("Upscaled Image")
+        out_image.save(
+            settings.output_path + f"{settings.upscale_factor}x_epoch_{settings.epoch}_{settings.model_name}_output.png")
+        out_image.show("Upscaled Image")
+    else:
+        print("No models yet")
