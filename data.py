@@ -1,11 +1,13 @@
-import torch.utils.data as data
-from torchvision.transforms import Compose, CenterCrop, ToTensor, Resize, InterpolationMode
-from os import listdir
-from os.path import exists, join, basename
-from os import makedirs, remove
-from six.moves import urllib
 import tarfile
+from os import listdir, makedirs, remove
+from os.path import basename, exists, join
+
+import torch.utils.data as data
 from PIL import Image
+from six.moves import urllib
+from torchvision.transforms import (CenterCrop, Compose, InterpolationMode,
+                                    Resize, ToTensor)
+
 
 def is_image_file(filename):
     return any(filename.endswith(extension) for extension in [".png", ".jpg", ".jpeg"])

@@ -1,7 +1,7 @@
 import progress.bar
 import torch
 import yaml
-from torch import optim, nn
+from torch import nn, optim
 from torch.utils.data import DataLoader
 
 try:
@@ -9,7 +9,7 @@ try:
 except ImportError:
     from yaml import Loader
 
-from data import get_training_set, get_test_set
+from data import get_test_set, get_training_set
 
 
 class Singleton(type):
