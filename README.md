@@ -45,15 +45,6 @@ Then run:
 ```commandline
 python main.py
 ```
-### Tuning the Model
-To tune the model, set the mode to tune in settings.yaml:
-```yaml
-mode: tune
-```
-Then run:
-```commandline
-python main.py
-```
 ### Run demo
 To run the demo, set the mode to demo in settings.yaml:
 ```yaml
@@ -66,22 +57,30 @@ python main.py
 ## Configuration
 The settings.yaml file contains various configuration options:
 ```yaml
-input_path: '/path/to/input/image.jpg'
-output_path: '/path/to/output/directory/'
-upscale_factor: 2
-batch_size: 16
-test_batch_size: 16
-epochs_number: 1000
-learning_rate: 1e-4
+input_path: "E:/SAVVA/STUDY/CUDA/ESPCN_PYTORCH/dataset/BSDS300/images/test/3096.jpg"
+output_path: "E:/SAVVA/STUDY/CUDA/ESPCN_PYTORCH/results/"
+model_path: "E:/SAVVA/STUDY/CUDA/ESPCN_PYTORCH/opt_models/"
+upscale_factor: 2 # 2, 3, 4, 8
+mode: "train"  # "train" or "demo"
+# Training settings (only for mode: "train"). Do not change
+batch_size: 64
+test_batch_size: 8
+epochs_number: 100
+epoch: 100
+learning_rate: 0.0001
 threads: 8
 seed: 123
+# Optimizations
 cuda: false
-mode: 'train'
+tuning: false
+mixed_precision: false
+optimized: false
+scheduler: false
+pruning: false
+# Miscellaneous
 trials: 100
 show_progress_bar: true
-mixed_precision: false
-model: 'Optimized'
-model_path: '/path/to/model/directory/'
+
 ```
 ## Model Export
 The model can be exported after training. The exported model will be saved in the specified directory with the naming convention x_traced_espcn_epoch_<epoch>.pt.
