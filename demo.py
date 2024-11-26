@@ -8,6 +8,7 @@ from PIL import Image
 from PIL.Image import Resampling
 from torchvision.transforms import ToTensor
 
+from utils import measure_time
 
 def run(settings):
     # Load model from file

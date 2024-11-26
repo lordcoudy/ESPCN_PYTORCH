@@ -1,10 +1,16 @@
-class EnhancedESPCN(nn.Module):
-    def __init__(self, upscaleFactor=2, numChannels=1):
-        super(EnhancedESPCN, self).__init__()
+import torch
+import torch.nn as nn
+
+from utils import measure_time
+
+
+class OptimizedESPCN(nn.Module):
+    def __init__(self, upscale_factor=2, num_channels=1):
+        super(OptimizedESPCN, self).__init__()
 
         # First block with channel attention
         self.conv1 = nn.Sequential(
-            nn.Conv2d(numChannels, 64, (5, 5), (1, 1), (2, 2)),
+            nn.Conv2d(num_channels, 64, (5, 5), (1, 1), (2, 2)),
             nn.BatchNorm2d(64),
             nn.PReLU(),  # Parametric ReLU for adaptive learning
             ChannelAttention(64),  # Add channel attention
@@ -28,8 +34,8 @@ class EnhancedESPCN(nn.Module):
             nn.Dropout2d(p=0.2)
         )
 
-        self.conv4 = nn.Conv2d(32, numChannels * (upscaleFactor ** 2), (3, 3), (1, 1), (1, 1))
-        self.pixelShuffle = nn.PixelShuffle(upscaleFactor)
+        self.conv4 = nn.Conv2d(32, num_channels * (upscale_factor ** 2), (3, 3), (1, 1), (1, 1))
+        self.pixelShuffle = nn.PixelShuffle(upscale_factor)
 
     def forward(self, x):
         conv1_out = self.conv1(x)

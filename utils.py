@@ -1,71 +1,88 @@
-import math
+import time
+
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.nn.modules.utils import _pair, _quadruple
+from torch.nn import functional as f
+from torchvision import models
+from torchvision.models import VGG16_Weights
+from torch.nn.utils import prune
+from torch.nn.utils.prune import L1Unstructured
+from PIL import Image
+from torchvision.transforms import ToTensor
 
-def ICNR(tensor, upscale_factor=2, inizializer=torch.nn.init.kaiming_normal_):
-    
-    new_shape = [int(tensor.shape[0] / (upscale_factor ** 2))] + list(tensor.shape[1:])
-    subkernel = torch.zeros(new_shape)
-    subkernel = inizializer(subkernel)
-    subkernel = subkernel.transpose(0, 1)
+def measure_time(func):
+    out = open(f'times\\time_{func.__name__}.txt', 'w').close()
+    def wrap(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        end = time.time()
 
-    subkernel = subkernel.contiguous().view(subkernel.shape[0],
-                                            subkernel.shape[1], -1)
+        print(func.__name__, end - start, file = out)
+        return result
 
-    kernel = subkernel.repeat(1, 1, upscale_factor ** 2)
+    return wrap
 
-    transposed_shape = [tensor.shape[1]] + [tensor.shape[0]] + list(tensor.shape[2:])
-    kernel = kernel.contiguous().view(transposed_shape)
+def mixed_precision(settings, data, target):
+    device_type = 'cpu'
+    if settings.cuda:
+        device_type = 'cuda'
+    with torch.amp.autocast(type = device_type, enabled = (settings.scaler is not None)):
+        output = settings.model(data)
+        mse = f.mse_loss(output, target)
+        percLoss = perceptual_loss(settings.device, output, target)
+        loss = mse + 0.1 * percLoss  # Combining losses
+        # loss = criterion(output, target)
 
-    kernel = kernel.transpose(0, 1)
+    if settings.scaler:
+        settings.scaler.scale(loss).backward()
+        settings.scaler.step(settings.optimizer)
+        settings.scaler.update()
+    else:
+        loss.backward()
+        settings.optimizer.step()
 
-    return kernel
+    return loss
 
+def perceptual_loss(device, pred, target):
+    # Perceptual Loss with VGG16
+    vgg = models.vgg16(weights = VGG16_Weights.DEFAULT).features[:16].eval().to(device)
+    for param in vgg.parameters():
+        param.requires_grad = False
+    pred_vgg = vgg(pred.repeat(1, 3, 1, 1))
+    target_vgg = vgg(target.repeat(1, 3, 1, 1))
+    return f.mse_loss(pred_vgg, target_vgg)
 
+@measure_time
+def prune_model(model, amount = 0.2):
+    parameters_to_prune = (
+        (model.conv1, 'weight'),
+        (model.conv2, 'weight'),
+        (model.conv3, 'weight'),
+        (model.conv4, 'weight')
+    )
+    prune.global_unstructured(
+            parameters = parameters_to_prune,
+            pruning_method = L1Unstructured,
+            amount = amount,
+    )
 
+@measure_time
+def checkpoint(settings, epoch):
+    model_path = (settings.model_path + f"{settings.upscale_factor}x_epoch_{epoch}_{settings.model_name}.pth")
+    torch.save(settings.model, model_path)
+    print("===> Checkpoint saved to {} >===".format(model_path))
 
-class MedianPool2d(nn.Module):
-    """ Median pool (usable as median filter when stride=1) module.
-    
-    Args:
-         kernel_size: size of pooling kernel, int or 2-tuple
-         stride: pool stride, int or 2-tuple
-         padding: pool padding, int or 4-tuple (l, r, t, b) as in pytorch F.pad
-         same: override padding and enforce same padding, boolean
-    """
-    def __init__(self, kernel_size=3, stride=1, padding=0, same=False):
-        super(MedianPool2d, self).__init__()
-        self.k = _pair(kernel_size)
-        self.stride = _pair(stride)
-        self.padding = _quadruple(padding)  # convert to l, r, t, b
-        self.same = same
+@measure_time
+def export_model(settings, epoch):
+    settings.model.eval()
+    img = Image.open(settings.input_path).convert('YCbCr')
+    y, cb, cr = img.split()
+    img_to_tensor = ToTensor()
+    input_tensor = img_to_tensor(y).view(1, -1, y.size[1], y.size[0])
+    if settings.cuda and torch.cuda.is_available():
+        input_tensor = input_tensor.cuda()
 
-    def _padding(self, x):
-        if self.same:
-            ih, iw = x.size()[2:]
-            if ih % self.stride[0] == 0:
-                ph = max(self.k[0] - self.stride[0], 0)
-            else:
-                ph = max(self.k[0] - (ih % self.stride[0]), 0)
-            if iw % self.stride[1] == 0:
-                pw = max(self.k[1] - self.stride[1], 0)
-            else:
-                pw = max(self.k[1] - (iw % self.stride[1]), 0)
-            pl = pw // 2
-            pr = pw - pl
-            pt = ph // 2
-            pb = ph - pt
-            padding = (pl, pr, pt, pb)
-        else:
-            padding = self.padding
-        return padding
-    
-    def forward(self, x):
-        # using existing pytorch functions and tensor ops so that we get autograd, 
-        # would likely be more efficient to implement from scratch at C/Cuda level
-        x = F.pad(x, self._padding(x), mode='reflect')
-        x = x.unfold(2, self.k[0], self.stride[0]).unfold(3, self.k[1], self.stride[1])
-        x = x.contiguous().view(x.size()[:4] + (-1,)).median(dim=-1)[0]
-        return x
+    traced_script = torch.jit.trace(settings.model, input_tensor)
+    traced_model_path = "{}x_traced_espcn_epoch_{}.pt".format(settings.upscale_factor, epoch)
+    traced_script.save(traced_model_path)
+    print("===> Model exported >===")
+    print("===> Traced model saved to {}".format(traced_model_path))

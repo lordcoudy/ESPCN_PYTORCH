@@ -1,18 +1,19 @@
-import torch
 import torch.nn as nn
 import torch.nn.init as init
 
+from utils import measure_time
+
 
 class ESPCN(nn.Module):
-    def __init__(self, upscaleFactor=2, numChannels=1):
+    def __init__(self, upscale_factor=2, num_channels=1):
         super(ESPCN, self).__init__()
 
         self.relu = nn.ReLU()
-        self.conv1 = nn.Conv2d(numChannels, 64, (5, 5), (1, 1), (2, 2))
+        self.conv1 = nn.Conv2d(num_channels, 64, (5, 5), (1, 1), (2, 2))
         self.conv2 = nn.Conv2d(64, 64, (3, 3), (1, 1), (1, 1))
         self.conv3 = nn.Conv2d(64, 32, (3, 3), (1, 1), (1, 1))
-        self.conv4 = nn.Conv2d(32, numChannels * (upscaleFactor ** 2), (3, 3), (1, 1), (1, 1))
-        self.pixelShuffle = nn.PixelShuffle(upscaleFactor)
+        self.conv4 = nn.Conv2d(32, num_channels * (upscale_factor ** 2), (3, 3), (1, 1), (1, 1))
+        self.pixelShuffle = nn.PixelShuffle(upscale_factor)
 
         self._initialize_weights()
 

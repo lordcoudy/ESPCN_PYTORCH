@@ -8,6 +8,8 @@ from six.moves import urllib
 from torchvision.transforms import (CenterCrop, Compose, InterpolationMode,
                                     Resize, ToTensor)
 
+from utils import measure_time
+
 
 def is_image_file(filename):
     return any(filename.endswith(extension) for extension in [".png", ".jpg", ".jpeg"])
@@ -40,7 +42,7 @@ class DatasetFromFolder(data.Dataset):
     def __len__(self):
         return len(self.image_filenames)
 
-
+@measure_time
 def download_bsd300(dest= "dataset"):
     output_image_dir = join(dest, "BSDS300/images")
 
@@ -83,7 +85,7 @@ def target_transform(crop_size):
         ToTensor(),
     ])
 
-
+@measure_time
 def get_training_set(upscale_factor):
     root_dir = download_bsd300()
     train_dir = join(root_dir, "train")
@@ -93,7 +95,7 @@ def get_training_set(upscale_factor):
                              in_transform =input_transform(crop_size, upscale_factor),
                              tgt_transform =target_transform(crop_size))
 
-
+@measure_time
 def get_test_set(upscale_factor):
     root_dir = download_bsd300()
     test_dir = join(root_dir, "test")

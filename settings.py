@@ -66,20 +66,20 @@ class Settings(metaclass = Singleton):
         bar.next()
         self._epoch = self.dictionary['epoch']
         bar.next()
+        self._pruning = self.dictionary['pruning']
+        bar.next()
+        self._tuning = self.dictionary['tuning']
+        bar.next()
 
         train_set = get_training_set(self._upscale_factor)
         bar.next()
         test_set = get_test_set(self._upscale_factor)
         bar.next()
-
-        self._model_name = self.dictionary['model']
-        bar.next()
-        if self._model_name == 'Optimized':
+        if self.dictionary['optimized']:
             from model_ench import OptimizedESPCN as espcn
         else:
             from model import ESPCN as espcn
         bar.next()
-
         self._cuda = self.dictionary['cuda']
         bar.next()
         self._device = torch.device("cuda" if self._cuda and torch.cuda.is_available() else "cpu")
@@ -96,7 +96,9 @@ class Settings(metaclass = Singleton):
         bar.next()
         self._optimizer = optim.SGD(self._model.parameters(), lr = self._lr, momentum = 0.9)
         bar.next()
-        self._scheduler = optim.lr_scheduler.StepLR(self._optimizer, step_size = 5, gamma = 0.5)
+        self._scheduler_enabled = self.dictionary['scheduler']
+        if self._scheduler_enabled:
+            self._scheduler = optim.lr_scheduler.StepLR(self._optimizer, step_size = 5, gamma = 0.5)
         bar.next()
         self._scaler = torch.amp.GradScaler(enabled = self._mp)
         bar.next()
@@ -178,10 +180,6 @@ class Settings(metaclass = Singleton):
         self._model = model
 
     @property
-    def model_name(self):
-        return self._model_name
-
-    @property
     def cuda(self):
         return self._cuda
 
@@ -198,6 +196,10 @@ class Settings(metaclass = Singleton):
         return self._optimizer
 
     @property
+    def scheduler_enabled(self):
+        return self._scheduler_enabled
+
+    @property
     def scheduler(self):
         return self._scheduler
 
@@ -212,4 +214,12 @@ class Settings(metaclass = Singleton):
     @property
     def testing_data_loader(self):
         return self._testing_data_loader
+
+    @property
+    def pruning(self):
+        return self._pruning
+
+    @property
+    def tuning(self):
+        return self._tuning
 
