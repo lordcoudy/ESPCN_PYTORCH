@@ -28,7 +28,7 @@ def instance():
 
 class Settings(metaclass = Singleton):
     def __init__(self):
-        bar = progress.bar.IncrementalBar('Initializing ', max = 31)
+        bar = progress.bar.IncrementalBar('Initializing ', max = 32)
         bar.start()
 
         stream = open("settings.yaml", 'r')
@@ -77,6 +77,7 @@ class Settings(metaclass = Singleton):
         bar.next()
         if self.dictionary['optimized']:
             from model_ench import OptimizedESPCN as espcn
+            self._pruning = False
         else:
             from model import ESPCN as espcn
         bar.next()
@@ -139,6 +140,10 @@ class Settings(metaclass = Singleton):
     def batch_size(self):
         return self._batch_size
 
+    @batch_size.setter
+    def batch_size(self, value):
+        self._batch_size = value
+
     @property
     def test_batch_size(self):
         return self._test_batch_size
@@ -150,6 +155,10 @@ class Settings(metaclass = Singleton):
     @property
     def learning_rate(self):
         return self._lr
+
+    @learning_rate.setter
+    def learning_rate(self, lr : float):
+        self._lr = lr
 
     @property
     def mixed_precision(self):
@@ -174,10 +183,6 @@ class Settings(metaclass = Singleton):
     @property
     def model(self):
         return self._model
-
-    @model.setter
-    def model(self, model):
-        self._model = model
 
     @property
     def cuda(self):

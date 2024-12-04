@@ -7,8 +7,8 @@ mode: "train"  # "train" or "demo"
 # Training settings (only for mode: "train"). Do not change
 batch_size: 64
 test_batch_size: 8
-epochs_number: 100
-epoch: 100
+epochs_number: 1
+epoch: 1
 learning_rate: 0.0001
 threads: 8
 seed: 123
@@ -20,5 +20,5 @@ optimized: false
 scheduler: false
 pruning: false
 # Miscellaneous
-trials: 100
+trials: 25
 show_progress_bar: true

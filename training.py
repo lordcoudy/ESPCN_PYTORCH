@@ -8,7 +8,7 @@ from utils import *
 
 @measure_time
 def test(settings):
-    measure_time(settings.model.eval())
+    settings.model.eval()
     avg_psnr = 0
     max_mse = 0
     min_mse = 1
@@ -47,12 +47,12 @@ def train_model(settings):
         if settings.scheduler_enabled:
             settings.scheduler.step()
         # Checkpoint
-        if epoch in [100, 200, 500, 1000, 2000]:
+        if epoch in [1, 25, 100, 200, 500, 1000, 2000]:
             test(settings)
             checkpoint(settings, epoch)
             export_model(settings, epoch)
         print(
-                f"Epoch {epoch + 1}/{settings.epochs_number}, Loss: {epoch_loss / len(settings.training_data_loader):.6f}, LR: {settings.scheduler.get_last_lr()[0]:.12f}")
+                f"Epoch {epoch + 1}/{settings.epochs_number}, Loss: {epoch_loss / len(settings.training_data_loader):.6f}")
 
 
 def train(settings):

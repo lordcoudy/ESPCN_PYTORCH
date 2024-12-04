@@ -25,7 +25,7 @@ def mixed_precision(settings, data, target):
     device_type = 'cpu'
     if settings.cuda:
         device_type = 'cuda'
-    with torch.amp.autocast(type = device_type, enabled = (settings.scaler is not None)):
+    with torch.amp.autocast(device_type, enabled = (settings.scaler is not None)):
         output = settings.model(data)
         mse = f.mse_loss(output, target)
         percLoss = perceptual_loss(settings.device, output, target)
@@ -67,7 +67,7 @@ def prune_model(model, amount = 0.2):
 
 @measure_time
 def checkpoint(settings, epoch):
-    model_path = (settings.model_path + f"{settings.upscale_factor}x_epoch_{epoch}_{settings.model_name}.pth")
+    model_path = (settings.model_path + f"{settings.upscale_factor}x_epoch_{epoch}_{settings.optimized}.pth")
     torch.save(settings.model, model_path)
     print("===> Checkpoint saved to {} >===".format(model_path))
 
@@ -82,7 +82,7 @@ def export_model(settings, epoch):
         input_tensor = input_tensor.cuda()
 
     traced_script = torch.jit.trace(settings.model, input_tensor)
-    traced_model_path = "{}x_traced_espcn_epoch_{}.pt".format(settings.upscale_factor, epoch)
+    traced_model_path = (settings.model_path + f"{settings.upscale_factor}x_traced_espcn_epoch_{epoch}_{settings.optimized}.pth")
     traced_script.save(traced_model_path)
     print("===> Model exported >===")
     print("===> Traced model saved to {}".format(traced_model_path))

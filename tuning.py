@@ -24,7 +24,7 @@ def train_model(settings, training_data_loader, optimizer):
 @measure_time
 def objective(trial):
     lr = trial.suggest_float('lr', 1e-9, 1e-4, log = True)
-    batch_size = trial.suggest_categorical('batch_size', low=16, high=128, step=32)
+    batch_size = trial.suggest_categorical('batch_size', [16, 32, 64, 128])
     settings = Settings()
     train_set = get_training_set(upscale_factor = settings.upscale_factor)
     dataloader = DataLoader(dataset = train_set, batch_size = batch_size)
@@ -46,4 +46,6 @@ def tune(settings):
     for key, value in trial.params.items():
         print('    {}: {}'.format(key, value))
         if key == 'lr':
-            settings.learning_rate = key
+            settings.learning_rate = value
+        if key == 'batch_size':
+            settings.batch_size = value
