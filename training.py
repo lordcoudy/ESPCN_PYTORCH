@@ -29,8 +29,8 @@ def test(settings):
 def train_model(settings):
     model = settings.model
     model.train()
-    epoch_losses = np.zeros(settings.epochs_number + 1)
-    for epoch in range(settings.epochs_number + 1):
+    epoch_losses = np.zeros(settings.epochs_number)
+    for epoch in range(settings.epochs_number):
         epoch_loss = 0
         bar = progress.bar.IncrementalBar(f'Epoch {epoch + 1}', max = settings.training_data_loader.__len__())
         bar.start()
@@ -47,10 +47,10 @@ def train_model(settings):
         if settings.scheduler_enabled:
             settings.scheduler.step()
         # Checkpoint
-        if epoch in [1, 25, 100, 200, 500, 1000, 2000]:
+        if epoch+1 in [1, 25, 100, 200, 500, 1000, 2000]:
             test(settings)
-            checkpoint(settings, epoch)
-            export_model(settings, epoch)
+            checkpoint(settings, epoch+1)
+            export_model(settings, epoch+1)
         print(
                 f"Epoch {epoch + 1}/{settings.epochs_number}, Loss: {epoch_loss / len(settings.training_data_loader):.6f}")
 

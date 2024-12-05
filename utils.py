@@ -67,7 +67,7 @@ def prune_model(model, amount = 0.2):
 
 @measure_time
 def checkpoint(settings, epoch):
-    model_path = (settings.model_path + f"{settings.upscale_factor}x_epoch_{epoch}_{settings.optimized}.pth")
+    model_path = (settings.model_path + f"{settings.upscale_factor}x_epoch_{epoch}_optimized-{settings.optimized}_cuda-{settings.cuda}_tuning-{settings.tuning}_pruning-{settings.pruning}_mp-{settings.mixed_precision}_scheduler-{settings.scheduler_enabled}_.pth")
     torch.save(settings.model, model_path)
     print("===> Checkpoint saved to {} >===".format(model_path))
 
@@ -82,7 +82,8 @@ def export_model(settings, epoch):
         input_tensor = input_tensor.cuda()
 
     traced_script = torch.jit.trace(settings.model, input_tensor)
-    traced_model_path = (settings.model_path + f"{settings.upscale_factor}x_traced_espcn_epoch_{epoch}_{settings.optimized}.pth")
+    traced_model_path = (settings.model_path + f"{settings.upscale_factor}x_traced_epoch_{epoch}_optimized-{settings.optimized}_cuda-{settings.cuda}_tuning-{settings.tuning}_pruning-{settings.pruning}_mp-{settings.mixed_precision}_scheduler-{settings.scheduler_enabled}_.pth")
+
     traced_script.save(traced_model_path)
     print("===> Model exported >===")
     print("===> Traced model saved to {}".format(traced_model_path))

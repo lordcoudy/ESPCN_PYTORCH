@@ -70,12 +70,13 @@ class Settings(metaclass = Singleton):
         bar.next()
         self._tuning = self.dictionary['tuning']
         bar.next()
+        self._optimized = self.dictionary['optimized']
 
         train_set = get_training_set(self._upscale_factor)
         bar.next()
         test_set = get_test_set(self._upscale_factor)
         bar.next()
-        if self.dictionary['optimized']:
+        if self._optimized:
             from model_ench import OptimizedESPCN as espcn
             self._pruning = False
         else:
@@ -227,4 +228,8 @@ class Settings(metaclass = Singleton):
     @property
     def tuning(self):
         return self._tuning
+
+    @property
+    def optimized(self):
+        return self._optimized
 
