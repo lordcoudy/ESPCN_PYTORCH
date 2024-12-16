@@ -47,7 +47,7 @@ def train_model(settings):
         if settings.scheduler_enabled:
             settings.scheduler.step()
         # Checkpoint
-        if epoch+1 in [1, 25, 100, 200, 500, 1000, 2000]:
+        if epoch+1 in [25, 100, 200, 500, 1000, 2000]:
             test(settings)
             checkpoint(settings, epoch+1)
             export_model(settings, epoch+1)
