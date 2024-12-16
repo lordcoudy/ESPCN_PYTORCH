@@ -8,10 +8,10 @@ class ESPCN(nn.Module):
         super(ESPCN, self).__init__()
 
         self.relu = nn.ReLU()
-        self.conv1 = SeparableConv2d(num_channels, 64, (5, 5), (1, 1), (2, 2))
-        self.conv2 = SeparableConv2d(64, 64, (3, 3), (1, 1), (1, 1))
-        self.conv3 = SeparableConv2d(64, 32, (3, 3), (1, 1), (1, 1))
-        self.conv4 = SeparableConv2d(32, num_channels * (upscale_factor ** 2), (3, 3), (1, 1), (1, 1))
+        self.conv1 = SeparableConv2d(num_channels, 64, 5, 1, 2)
+        self.conv2 = SeparableConv2d(64, 64, 3, 1, 1)
+        self.conv3 = SeparableConv2d(64, 32, 3, 1, 1)
+        self.conv4 = SeparableConv2d(32, num_channels * (upscale_factor ** 2), 3, 1, 1)
         self.pixelShuffle = nn.PixelShuffle(upscale_factor)
 
         self._initialize_weights()
@@ -30,15 +30,41 @@ class ESPCN(nn.Module):
         init.orthogonal_(self.conv4.depthwise.weight)
 
 class SeparableConv2d(nn.Module):
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel_size=3,
+                 stride=1,
+                 padding=0,
+                 dilation=1,
+                 bias=True,
+                 padding_mode='zeros',
+                 depth_multiplier=1,
+        ):
+        super().__init__()
 
-    def __init__(self, in_channels, out_channels, kernel_size, stride, padding, bias=False):
-        super(SeparableConv2d, self).__init__()
-        self.depthwise = nn.Conv2d(in_channels, in_channels, kernel_size=kernel_size,
-                                   groups=in_channels, bias=bias, padding=padding, stride=stride)
-        self.pointwise = nn.Conv2d(in_channels, out_channels,
-                                   kernel_size=1, bias=bias, stride=stride)
+        intermediate_channels = in_channels * depth_multiplier
+        self.spatialConv = nn.Conv2d(
+             in_channels=in_channels,
+             out_channels=intermediate_channels,
+             kernel_size=kernel_size,
+             stride=stride,
+             padding=padding,
+             dilation=dilation,
+             groups=in_channels,
+             bias=bias,
+             padding_mode=padding_mode
+        )
+        self.pointConv = nn.Conv2d(
+             in_channels=intermediate_channels,
+             out_channels=out_channels,
+             kernel_size=1,
+             stride=1,
+             padding=0,
+             dilation=1,
+             bias=bias,
+             padding_mode=padding_mode,
+        )
 
     def forward(self, x):
-        out = self.depthwise(x)
-        out = self.pointwise(out)
-        return out
+        return self.pointConv(self.spatialConv(x))
