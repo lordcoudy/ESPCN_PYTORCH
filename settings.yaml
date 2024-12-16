@@ -1,7 +1,7 @@
 ---
-input_path: "E:/SAVVA/STUDY/CUDA/ESPCN_PYTORCH/dataset/BSDS300/images/test/3096.jpg"
-output_path: "E:/SAVVA/STUDY/CUDA/ESPCN_PYTORCH/results/"
-model_path: "E:/SAVVA/STUDY/CUDA/ESPCN_PYTORCH/opt_models/"
+input_path: "./dataset/BSDS300/images/test/3096.jpg"
+output_path: "./results/"
+model_path: "./opt_models/"
 upscale_factor: 2 # 2, 3, 4, 8
 mode: "train"  # "train" or "demo"
 # Training settings (only for mode: "train"). Do not change
@@ -14,10 +14,10 @@ threads: 8
 seed: 123
 # Optimizations
 cuda: false
-tuning: false
+tuning: true
 mixed_precision: false
 optimized: false
-scheduler: false
+scheduler: true
 pruning: false
 # Miscellaneous
 trials: 25
