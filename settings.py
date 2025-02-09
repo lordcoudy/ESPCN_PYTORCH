@@ -28,7 +28,7 @@ def instance():
 
 class Settings(metaclass = Singleton):
     def __init__(self):
-        bar = progress.bar.IncrementalBar('Initializing ', max = 32)
+        bar = progress.bar.IncrementalBar('Initializing ', max = 33)
         bar.start()
 
         stream = open("settings.yaml", 'r')
@@ -54,6 +54,8 @@ class Settings(metaclass = Singleton):
         bar.next()
         self._seed = self.dictionary['seed']
         bar.next()
+        self._num_classes = self.dictionary['num_classes']
+        bar.next()
         self._lr = self.dictionary['learning_rate']
         bar.next()
         self._mp = self.dictionary['mixed_precision']
@@ -77,7 +79,7 @@ class Settings(metaclass = Singleton):
         test_set = get_test_set(self._upscale_factor)
         bar.next()
         if self._optimized:
-            from model_ench import OptimizedESPCN as espcn
+            from model_ench import ObjectAwareESPCN as espcn
             self._pruning = False
         else:
             from model import ESPCN as espcn
@@ -88,7 +90,7 @@ class Settings(metaclass = Singleton):
         bar.next()
         torch.manual_seed(self._seed)
         bar.next()
-        self._model = espcn().to(self._device)
+        self._model = espcn(self._num_classes, self._upscale_factor).to(self._device)
         if self._cuda and torch.cuda.is_available():
             self._model = self._model.cuda()
         bar.next()
@@ -152,6 +154,10 @@ class Settings(metaclass = Singleton):
     @property
     def seed(self):
         return self._seed
+
+    @property
+    def num_classes(self):
+        return self._num_classes
 
     @property
     def learning_rate(self):

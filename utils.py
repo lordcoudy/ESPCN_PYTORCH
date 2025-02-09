@@ -10,13 +10,12 @@ from PIL import Image
 from torchvision.transforms import ToTensor
 
 def measure_time(func):
-    out = open(f'times\\time_{func.__name__}.txt', 'w').close()
     def wrap(*args, **kwargs):
         start = time.time()
         result = func(*args, **kwargs)
         end = time.time()
 
-        print(func.__name__, end - start, file = out)
+        print(func.__name__, end - start, end = "\n", file = open(f'times\\time_{func.__name__}.txt', 'a+'))
         return result
 
     return wrap
@@ -51,19 +50,19 @@ def perceptual_loss(device, pred, target):
     target_vgg = vgg(target.repeat(1, 3, 1, 1))
     return f.mse_loss(pred_vgg, target_vgg)
 
-@measure_time
-def prune_model(model, amount = 0.2):
-    parameters_to_prune = (
-        (model.conv1, 'weight'),
-        (model.conv2, 'weight'),
-        (model.conv3, 'weight'),
-        (model.conv4, 'weight')
-    )
-    prune.global_unstructured(
-            parameters = parameters_to_prune,
-            pruning_method = L1Unstructured,
-            amount = amount,
-    )
+# @measure_time
+# def prune_model(model, amount = 0.2):
+#     parameters_to_prune = (
+#         (model.conv1.depthwise, 'weight'),
+#         (model.conv2.depthwise, 'weight'),
+#         (model.conv3.depthwise, 'weight'),
+#         (model.conv4.depthwise, 'weight')
+#     )
+#     prune.global_unstructured(
+#             parameters = parameters_to_prune,
+#             pruning_method = L1Unstructured,
+#             amount = amount,
+#     )
 
 @measure_time
 def checkpoint(settings, epoch):

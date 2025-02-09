@@ -1,4 +1,3 @@
-import time
 from math import log10
 
 import numpy as np
@@ -25,6 +24,7 @@ def test(settings):
     print(f"===> Max. MSE: {max_mse:.12f} >===")
     print(f"===> Min. MSE: {min_mse:.12f} >===")
 
+
 @measure_time
 def train_model(settings):
     model = settings.model
@@ -47,7 +47,7 @@ def train_model(settings):
         if settings.scheduler_enabled:
             settings.scheduler.step()
         # Checkpoint
-        if epoch+1 in [25, 100, 200, 500, 1000, 2000]:
+        if epoch+1 in [25, 50, 100, 200, 500, 1000, 2000]:
             test(settings)
             checkpoint(settings, epoch+1)
             export_model(settings, epoch+1)
@@ -59,6 +59,6 @@ def train(settings):
     print(f"===> Upscale factor: {settings.upscale_factor} | Epochs: {settings.epochs_number} >===")
     print("===> Building model >===")
     print("Structure of the model: ", settings.model)
+    name = (settings.model_path + f"{settings.upscale_factor}x_epoch_{settings.epochs_number}_optimized-{settings.optimized}_cuda-{settings.cuda}_tuning-{settings.tuning}_pruning-{settings.pruning}_mp-{settings.mixed_precision}_scheduler-{settings.scheduler_enabled}:")
+    print(name, end = "\n", file = open(f'times\\time_train_model.txt', 'a+'))
     train_model(settings)
-    # plt.plot(dictionary['epochs_number'], g_epochLosses)
-    # plt.show()

@@ -1,66 +1,46 @@
 import torch
 import torch.nn as nn
+from torchvision import models
 
-from utils import measure_time
+from model import ESPCN
 
 
-class OptimizedESPCN(nn.Module):
-    def __init__(self, upscale_factor=2, num_channels=1):
-        super(OptimizedESPCN, self).__init__()
+# Define the Classifier Network
+class Classifier(nn.Module):
+    def __init__(self, num_classes):
+        super(Classifier, self).__init__()
+        self.base_model = models.resnet18(pretrained = True)
+        # Extract the first conv layer's parameters
+        num_channels = 1
+        num_filters = self.base_model.conv1.out_channels
+        kernel_size = self.base_model.conv1.kernel_size
+        stride = self.base_model.conv1.stride
+        padding = self.base_model.conv1.padding
+        conv1 = torch.nn.Conv2d(num_channels, num_filters, kernel_size = kernel_size, stride = stride, padding = padding)
+        # Initialize the new conv1 layer's weights by averaging the pretrained weights across the channel dimension
+        original_weights = self.base_model.conv1.weight.data.mean(dim = 1, keepdim = True)
+        # Expand the averaged weights to the number of input channels of the new dataset
+        conv1.weight.data = original_weights.repeat(1, num_channels, 1, 1)
+        self.base_model.conv1 = conv1
+        self.base_model.fc = nn.Linear(self.base_model.fc.in_features, num_classes)
 
-        # First block with channel attention
-        self.conv1 = nn.Sequential(
-            nn.Conv2d(num_channels, 64, (5, 5), (1, 1), (2, 2)),
-            nn.BatchNorm2d(64),
-            nn.PReLU(),  # Parametric ReLU for adaptive learning
-            ChannelAttention(64),  # Add channel attention
-            nn.Dropout2d(p=0.2)
-        )
-
-        # Second block with enhanced residual connection
-        self.conv2 = nn.Sequential(
-            nn.Conv2d(64, 64, (3, 3), (1, 1), (1, 1)),
-            nn.BatchNorm2d(64),
-            nn.PReLU(),
-            ChannelAttention(64),
-            nn.Dropout2d(p=0.2)
-        )
-
-        # Third block with dense connection
-        self.conv3 = nn.Sequential(
-            nn.Conv2d(128, 32, (3, 3), (1, 1), (1, 1)),  # 128 input channels for concatenation
-            nn.BatchNorm2d(32),
-            nn.PReLU(),
-            nn.Dropout2d(p=0.2)
-        )
-
-        self.conv4 = nn.Conv2d(32, num_channels * (upscale_factor ** 2), (3, 3), (1, 1), (1, 1))
-        self.pixelShuffle = nn.PixelShuffle(upscale_factor)
 
     def forward(self, x):
-        conv1_out = self.conv1(x)
-        conv2_out = self.conv2(conv1_out)
+        return self.base_model(x).argmax(dim = 1)
 
-        # Dense connection: concatenate features
-        dense_out = torch.cat([conv1_out, conv2_out], dim=1)
-        conv3_out = self.conv3(dense_out)
 
-        x = self.conv4(conv3_out)
-        return self.pixelShuffle(x)
-
-class ChannelAttention(nn.Module):
-    def __init__(self, channels, reduction=16):
-        super(ChannelAttention, self).__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Sequential(
-            nn.Linear(channels, channels // reduction, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(channels // reduction, channels, bias=False),
-            nn.Sigmoid()
-        )
+# Define the Object-Aware Super-Resolution Model
+class ObjectAwareESPCN(nn.Module):
+    def __init__(self, num_classes, scale_factor, num_channels = 1):
+        super(ObjectAwareESPCN, self).__init__()
+        self.classifier = Classifier(num_classes)
+        self.espcn_networks = nn.ModuleList([ESPCN(upscale_factor = scale_factor, num_classes = num_channels) for _ in range(num_classes)])
 
     def forward(self, x):
-        b, c, _, _ = x.size()
-        y = self.avg_pool(x).view(b, c)
-        y = self.fc(y).view(b, c, 1, 1)
-        return x * y.expand_as(x)
+        # Classify the object
+        class_probs = self.classifier(x)
+        class_id = class_probs[0].item()
+
+        # Select the corresponding ESPCN network
+        sr_output = self.espcn_networks[class_id](x)
+        return sr_output

@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 
 from data import get_training_set
 from settings import Settings
-from utils import measure_time, mixed_precision, prune_model
+from utils import measure_time, mixed_precision
 
 
 def train_model(settings, training_data_loader, optimizer):
@@ -24,7 +24,7 @@ def train_model(settings, training_data_loader, optimizer):
 @measure_time
 def objective(trial):
     lr = trial.suggest_float('lr', 1e-9, 1e-4, log = True)
-    batch_size = trial.suggest_categorical('batch_size', [16, 32, 64, 128])
+    batch_size = trial.suggest_categorical('batch_size', [8, 16, 32, 64, 128])
     settings = Settings()
     train_set = get_training_set(upscale_factor = settings.upscale_factor)
     dataloader = DataLoader(dataset = train_set, batch_size = batch_size)
@@ -34,8 +34,8 @@ def objective(trial):
 
 @measure_time
 def tune(settings):
-    if settings.pruning:
-        prune_model(settings.model)
+    # if settings.pruning:
+    #     prune_model(settings.model)
     study = optuna.create_study()
     study.optimize(objective, n_trials = settings.trials,
                    show_progress_bar = settings.show_progress_bar)  # perform the hyperparameter tuning
