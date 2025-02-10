@@ -3,6 +3,7 @@ import torch.nn as nn
 from torchvision import models
 
 from model import ESPCN
+from utils import log
 
 
 # Define the Classifier Network
@@ -40,7 +41,8 @@ class ObjectAwareESPCN(nn.Module):
         # Classify the object
         class_probs = self.classifier(x)
         class_id = class_probs[0].item()
-
+        log(f"Class ID: {class_id}")
+        print(f"Class ID: {class_id}")
         # Select the corresponding ESPCN network
         sr_output = self.espcn_networks[class_id](x)
         return sr_output

@@ -4,22 +4,25 @@ import numpy as np
 import progress.bar
 
 from utils import *
+import torch
 
 @measure_time
 def test(settings):
-    settings.model.eval()
+    m = settings.model
+    m.eval()
     avg_psnr = 0
     max_mse = 0
     min_mse = 1
     with torch.no_grad():
         for batch in settings.testing_data_loader:
             input_tensor, target_tensor = batch[0].to(settings.device), batch[1].to(settings.device)
-            output = settings.model(input_tensor)
+            output = m(input_tensor)
             mse = settings.criterion(output, target_tensor)
             max_mse = max(max_mse, mse.item())
             min_mse = min(min_mse, mse.item())
             psnr = 10 * log10(1 / mse.item())
             avg_psnr += psnr
+            log(f"PSNR: {psnr:.6f} dB | MSE: {mse.item():.6f}")
     print(f"===> Avg. PSNR: {avg_psnr / len(settings.testing_data_loader):.12f} dB >===")
     print(f"===> Max. MSE: {max_mse:.12f} >===")
     print(f"===> Min. MSE: {min_mse:.12f} >===")
@@ -27,28 +30,31 @@ def test(settings):
 
 @measure_time
 def train_model(settings):
-    model = settings.model
-    model.train()
-    epoch_losses = np.zeros(settings.epochs_number)
+    m = settings.model
+    m.train()
     for epoch in range(settings.epochs_number):
         epoch_loss = 0
         bar = progress.bar.IncrementalBar(f'Epoch {epoch + 1}', max = settings.training_data_loader.__len__())
         bar.start()
-        for data, target in settings.training_data_loader:
-            data, target = data.to(settings.device), target.to(settings.device)
+        for iteration, batch in enumerate(settings.training_data_loader, 1):
+            data, target = batch[0].to(settings.device), batch[1].to(settings.device)
             bar.next()
-            settings.optimizer.zero_grad()
-            loss = mixed_precision(settings, data, target)
+            loss = calculateLoss(settings, data, target)
             epoch_loss += loss.item()
-            epoch_losses[epoch] = epoch_loss
+            backPropagate(settings, loss)
+            log(f"Loss: {loss.item():.6f}")
+            print("===> Epoch[{}]({}/{}): Loss: {:.4f}".format(epoch, iteration, len(settings.training_data_loader), loss.item()))
+
+        print("===> Epoch {} Complete: Avg. Loss: {:.4f}".format(epoch, epoch_loss / len(settings.training_data_loader)))
+
+        test(settings)
 
         bar.finish()
         # Learning rate decay
         if settings.scheduler_enabled:
-            settings.scheduler.step()
+            settings.scheduler.step(epoch_loss)
         # Checkpoint
         if epoch+1 in [25, 50, 100, 200, 500, 1000, 2000]:
-            test(settings)
             checkpoint(settings, epoch+1)
             export_model(settings, epoch+1)
         print(

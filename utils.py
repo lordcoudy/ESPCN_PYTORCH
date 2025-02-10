@@ -1,13 +1,28 @@
+import json
+import logging
 import time
+from logging import Formatter
 
 import torch
-from torch.nn import functional as f
-from torchvision import models
-from torchvision.models import VGG16_Weights
+from PIL import Image
 from torch.nn.utils import prune
 from torch.nn.utils.prune import L1Unstructured
-from PIL import Image
 from torchvision.transforms import ToTensor
+
+
+class JsonFormatter(Formatter):
+    def format(self, record):
+        log_record = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "logger_name": record.name,
+            "filename": record.filename,
+            "lineno": record.lineno,
+            "funcname": record.funcName,
+            "message": record.getMessage(), # Important to use getMessage() to handle exceptions
+            # Add other relevant fields here as needed (e.g., process ID, thread ID, etc.)
+        }
+        return json.dumps(log_record)
 
 def measure_time(func):
     def wrap(*args, **kwargs):
@@ -20,17 +35,27 @@ def measure_time(func):
 
     return wrap
 
-def mixed_precision(settings, data, target):
+def log(message):
+    # Configure logging
+    json_formatter = JsonFormatter()
+    handler = logging.FileHandler(filename="./ESPyCN.log", mode="a+")  # Or FileHandler for file output
+    handler.setFormatter(json_formatter)
+    logger = logging.getLogger(__name__)
+    logger.addHandler(handler)
+    logger.log(logging.DEBUG, message)
+
+
+def calculateLoss(settings, data, target):
+    settings.optimizer.zero_grad()
     device_type = 'cpu'
     if settings.cuda:
         device_type = 'cuda'
-    with torch.amp.autocast(device_type, enabled = (settings.scaler is not None)):
+    with torch.amp.autocast(device_type, enabled =settings.mixed_precision):
         output = settings.model(data)
-        mse = f.mse_loss(output, target)
-        percLoss = perceptual_loss(settings.device, output, target)
-        loss = mse + 0.1 * percLoss  # Combining losses
-        # loss = criterion(output, target)
+        loss = settings.criterion(output, target)
+    return loss
 
+def backPropagate(settings, loss):
     if settings.scaler:
         settings.scaler.scale(loss).backward()
         settings.scaler.step(settings.optimizer)
@@ -39,30 +64,18 @@ def mixed_precision(settings, data, target):
         loss.backward()
         settings.optimizer.step()
 
-    return loss
-
-def perceptual_loss(device, pred, target):
-    # Perceptual Loss with VGG16
-    vgg = models.vgg16(weights = VGG16_Weights.DEFAULT).features[:16].eval().to(device)
-    for param in vgg.parameters():
-        param.requires_grad = False
-    pred_vgg = vgg(pred.repeat(1, 3, 1, 1))
-    target_vgg = vgg(target.repeat(1, 3, 1, 1))
-    return f.mse_loss(pred_vgg, target_vgg)
-
-# @measure_time
-# def prune_model(model, amount = 0.2):
-#     parameters_to_prune = (
-#         (model.conv1.depthwise, 'weight'),
-#         (model.conv2.depthwise, 'weight'),
-#         (model.conv3.depthwise, 'weight'),
-#         (model.conv4.depthwise, 'weight')
-#     )
-#     prune.global_unstructured(
-#             parameters = parameters_to_prune,
-#             pruning_method = L1Unstructured,
-#             amount = amount,
-#     )
+@measure_time
+def prune_model(model, amount = 0.2):
+    parameters_to_prune = (
+        (model.conv1, 'weight'),
+        (model.conv2, 'weight'),
+        (model.conv3, 'weight'),
+    )
+    prune.global_unstructured(
+            parameters = parameters_to_prune,
+            pruning_method = prune.L1Unstructured,
+            amount = amount,
+    )
 
 @measure_time
 def checkpoint(settings, epoch):

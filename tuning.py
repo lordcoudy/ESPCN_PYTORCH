@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 
 from data import get_training_set
 from settings import Settings
-from utils import measure_time, mixed_precision
+from utils import measure_time, calculateLoss, backPropagate
 
 
 def train_model(settings, training_data_loader, optimizer):
@@ -16,8 +16,9 @@ def train_model(settings, training_data_loader, optimizer):
         input, target = input.to(settings.device), target.to(settings.device)
         optimizer.zero_grad()
         # Mixed precision for GPU training
-        loss = mixed_precision(settings, input, target)
+        loss = calculateLoss(settings, input, target)
         epoch_loss += loss.item()
+        backPropagate(settings, loss)
 
     return epoch_loss / len(training_data_loader)
 

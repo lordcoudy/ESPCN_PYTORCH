@@ -28,7 +28,7 @@ def instance():
 
 class Settings(metaclass = Singleton):
     def __init__(self):
-        bar = progress.bar.IncrementalBar('Initializing ', max = 33)
+        bar = progress.bar.IncrementalBar('Initializing ', max = 34)
         bar.start()
 
         stream = open("settings.yaml", 'r')
@@ -102,9 +102,18 @@ class Settings(metaclass = Singleton):
         bar.next()
         self._scheduler_enabled = self.dictionary['scheduler']
         if self._scheduler_enabled:
-            self._scheduler = optim.lr_scheduler.StepLR(self._optimizer, step_size = 5, gamma = 0.5)
+            self._scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+                                self._optimizer,
+                                mode='min', # or 'max' if monitoring metric like PSNR
+                                factor=0.1,  # Reduce LR by a factor of 0.1
+                                patience=10, # Reduce LR after 10 epochs of no improvement in val_loss
+                                min_lr=1e-6 # Minimum learning rate
+            )
         bar.next()
-        self._scaler = torch.amp.GradScaler(enabled = self._mp)
+        device_type = 'cpu'
+        if self._cuda:
+            device_type = 'cuda'
+        self._scaler = torch.amp.GradScaler(device=device_type, enabled = self._mp)
         bar.next()
 
         self._training_data_loader = DataLoader(dataset = train_set, num_workers = self._threads,
@@ -112,6 +121,8 @@ class Settings(metaclass = Singleton):
         bar.next()
         self._testing_data_loader = DataLoader(dataset = test_set, num_workers = self._threads,
                                                batch_size = self._test_batch_size, shuffle = False)
+        bar.next()
+        self._prune_amount = self.dictionary['prune_amount']
         bar.next()
         bar.finish()
 
@@ -238,4 +249,8 @@ class Settings(metaclass = Singleton):
     @property
     def optimized(self):
         return self._optimized
+
+    @property
+    def prune_amount(self):
+        return self._prune_amount
 
