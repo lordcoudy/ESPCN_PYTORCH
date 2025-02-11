@@ -69,17 +69,17 @@ def calculate_valid_crop_size(crop_size, upscale_factor):
     return crop_size - (crop_size % upscale_factor)
 
 
-def input_transform(crop_size, upscale_factor):
+def input_transform(crop_size):
     return Compose([
         CenterCrop(crop_size),
-        Resize(size= crop_size // upscale_factor, interpolation=InterpolationMode.LANCZOS),
         ToTensor(),
     ])
 
 
-def target_transform(crop_size):
+def target_transform(crop_size, upscale_factor):
     return Compose([
         CenterCrop(crop_size),
+        Resize(size=crop_size ** upscale_factor, interpolation=InterpolationMode.LANCZOS),
         ToTensor(),
     ])
 
@@ -90,8 +90,8 @@ def get_training_set(upscale_factor):
     crop_size = calculate_valid_crop_size(256, upscale_factor)
 
     return DatasetFromFolder(train_dir,
-                             in_transform =input_transform(crop_size, upscale_factor),
-                             tgt_transform =target_transform(crop_size))
+                             in_transform =input_transform(crop_size),
+                             tgt_transform =target_transform(crop_size, upscale_factor))
 
 
 def get_test_set(upscale_factor):
@@ -100,5 +100,5 @@ def get_test_set(upscale_factor):
     crop_size = calculate_valid_crop_size(256, upscale_factor)
 
     return DatasetFromFolder(test_dir,
-                             in_transform =input_transform(crop_size, upscale_factor),
-                             tgt_transform =target_transform(crop_size))
+                             in_transform =input_transform(crop_size),
+                             tgt_transform =target_transform(crop_size, upscale_factor))

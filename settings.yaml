@@ -2,7 +2,7 @@
 input_path: "./dataset/BSDS300/images/test/3096.jpg"
 output_path: "./results/"
 model_path: "./models/"
-upscale_factor: 2 # 2, 3, 4, 8
+upscale_factor: 4 # 2, 3, 4, 8
 mode: "train"  # "train" or "demo"
 # Training settings (only for mode: "train"). Do not change
 batch_size: 64
@@ -19,7 +19,7 @@ tuning: true
 mixed_precision: false
 optimized: false
 scheduler: true
-pruning: false
+pruning: true
 # Miscellaneous
 trials: 100
 show_progress_bar: true
