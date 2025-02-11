@@ -35,14 +35,14 @@ def measure_time(func):
 
     return wrap
 
-def log(message):
-    # Configure logging
-    json_formatter = JsonFormatter()
-    handler = logging.FileHandler(filename="./ESPyCN.log", mode="a+")  # Or FileHandler for file output
-    handler.setFormatter(json_formatter)
-    logger = logging.getLogger(__name__)
-    logger.addHandler(handler)
-    logger.log(logging.DEBUG, message)
+# def log(message):
+#     # Configure logging
+#     json_formatter = JsonFormatter()
+#     handler = logging.FileHandler(filename="./ESPyCN.log", mode="a+")  # Or FileHandler for file output
+#     handler.setFormatter(json_formatter)
+#     logger = logging.getLogger(__name__)
+#     logger.addHandler(handler)
+#     logger.log(logging.DEBUG, message)
 
 
 def calculateLoss(settings, data, target):

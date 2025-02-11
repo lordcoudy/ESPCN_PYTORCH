@@ -22,7 +22,7 @@ def test(settings):
             min_mse = min(min_mse, mse.item())
             psnr = 10 * log10(1 / mse.item())
             avg_psnr += psnr
-            log(f"PSNR: {psnr:.6f} dB | MSE: {mse.item():.6f}")
+            # log(f"PSNR: {psnr:.6f} dB | MSE: {mse.item():.6f}")
     print(f"===> Avg. PSNR: {avg_psnr / len(settings.testing_data_loader):.12f} dB >===")
     print(f"===> Max. MSE: {max_mse:.12f} >===")
     print(f"===> Min. MSE: {min_mse:.12f} >===")
@@ -42,7 +42,7 @@ def train_model(settings):
             loss = calculateLoss(settings, data, target)
             epoch_loss += loss.item()
             backPropagate(settings, loss)
-            log(f"Loss: {loss.item():.6f}")
+            # log(f"Loss: {loss.item():.6f}")
             print("===> Epoch[{}]({}/{}): Loss: {:.4f}".format(epoch, iteration, len(settings.training_data_loader), loss.item()))
 
         print("===> Epoch {} Complete: Avg. Loss: {:.4f}".format(epoch, epoch_loss / len(settings.training_data_loader)))

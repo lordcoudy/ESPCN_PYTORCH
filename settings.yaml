@@ -7,20 +7,20 @@ mode: "train"  # "train" or "demo"
 # Training settings (only for mode: "train"). Do not change
 batch_size: 64
 test_batch_size: 8
-epochs_number: 25
-epoch: 25
+epochs_number: 1000
+epoch: 1000
 learning_rate: 0.0001
 threads: 8
 seed: 123
 num_classes: 4
 # Optimizations
-cuda: false
+cuda: true
 tuning: true
 mixed_precision: false
 optimized: false
 scheduler: true
 pruning: false
 # Miscellaneous
-trials: 20
+trials: 100
 show_progress_bar: true
 prune_amount: 0.5
