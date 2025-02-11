@@ -254,3 +254,6 @@ class Settings(metaclass = Singleton):
     def prune_amount(self):
         return self._prune_amount
 
+    @property
+    def name(self):
+        return self._model_path + f"{self._upscale_factor}x_epoch_{self._n_epochs}_optimized({self._optimized})_cuda({self._cuda})_tuning({self._tuning})_pruning({self._pruning})_mp({self._mp})_scheduler({self._scheduler_enabled})"

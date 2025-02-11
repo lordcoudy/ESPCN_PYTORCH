@@ -12,14 +12,12 @@ from utils import measure_time, calculateLoss, backPropagate
 def train_model(settings, training_data_loader, optimizer):
     settings.model.train()
     epoch_loss = 0
-    for iteration, (input, target) in enumerate(training_data_loader, 1):
-        input, target = input.to(settings.device), target.to(settings.device)
+    for iteration, batch in enumerate(settings.training_data_loader, 1):
+        data, target = batch[0].to(settings.device), batch[1].to(settings.device)
         optimizer.zero_grad()
-        # Mixed precision for GPU training
-        loss = calculateLoss(settings, input, target)
+        loss = calculateLoss(settings, data, target)
         epoch_loss += loss.item()
         backPropagate(settings, loss)
-
     return epoch_loss / len(training_data_loader)
 
 @measure_time
@@ -35,8 +33,6 @@ def objective(trial):
 
 @measure_time
 def tune(settings):
-    # if settings.pruning:
-    #     prune_model(settings.model)
     study = optuna.create_study()
     study.optimize(objective, n_trials = settings.trials,
                    show_progress_bar = settings.show_progress_bar)  # perform the hyperparameter tuning
@@ -45,7 +41,7 @@ def tune(settings):
     print('  Value: ', trial.value)
     print('  Params: ')
     for key, value in trial.params.items():
-        print('    {}: {}'.format(key, value))
+        print(f'    {key}: {value}')
         if key == 'lr':
             settings.learning_rate = value
         if key == 'batch_size':

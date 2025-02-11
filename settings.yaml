@@ -23,4 +23,4 @@ pruning: false
 # Miscellaneous
 trials: 100
 show_progress_bar: true
-prune_amount: 0.5
+prune_amount: 0.2

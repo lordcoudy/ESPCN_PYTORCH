@@ -57,30 +57,32 @@ python main.py
 ## Configuration
 The settings.yaml file contains various configuration options:
 ```yaml
-input_path: "E:/SAVVA/STUDY/CUDA/ESPCN_PYTORCH/dataset/BSDS300/images/test/3096.jpg"
-output_path: "E:/SAVVA/STUDY/CUDA/ESPCN_PYTORCH/results/"
-model_path: "E:/SAVVA/STUDY/CUDA/ESPCN_PYTORCH/opt_models/"
+---
+input_path: "./dataset/BSDS300/images/test/3096.jpg"
+output_path: "./results/"
+model_path: "./models/"
 upscale_factor: 2 # 2, 3, 4, 8
 mode: "train"  # "train" or "demo"
 # Training settings (only for mode: "train"). Do not change
 batch_size: 64
 test_batch_size: 8
-epochs_number: 100
-epoch: 100
+epochs_number: 1000
+epoch: 1000
 learning_rate: 0.0001
 threads: 8
 seed: 123
+num_classes: 4
 # Optimizations
-cuda: false
-tuning: false
+cuda: true
+tuning: true
 mixed_precision: false
 optimized: false
-scheduler: false
+scheduler: true
 pruning: false
 # Miscellaneous
 trials: 100
 show_progress_bar: true
-
+prune_amount: 0.2
 ```
 ## Model Export
 The model can be exported after training. The exported model will be saved in the specified directory with the naming convention x_traced_espcn_epoch_<epoch>.pt.

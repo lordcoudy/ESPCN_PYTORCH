@@ -12,8 +12,7 @@ from utils import measure_time
 
 def run(settings):
     # Load model from file
-    model_path = (settings.model_path + f"{settings.upscale_factor}x_epoch_{settings.epoch}_optimized-{settings.optimized}_cuda-{settings.cuda}_tuning-{settings.tuning}_pruning-{settings.pruning}_mp-{settings.mixed_precision}_scheduler-{settings.scheduler_enabled}_.pth")
-    # model_path = (settings.model_path + f"2x_epoch_1_False.pth")
+    model_path = f"{settings.name}.pth"
     model_available = exists(model_path)
     if model_available:
         model = torch.load(model_path)
@@ -26,8 +25,6 @@ def run(settings):
         if torch.cuda.is_available() and settings.cuda:
             model = model.cuda()
             input = image_to_tensor(y).view(1, -1, y.size[1], y.size[0]).cuda()
-
-
         out = model(input)
         out = out.cpu()
         out_image_y = out[0].detach().numpy()
@@ -39,8 +36,7 @@ def run(settings):
         out_image_cr = cr.resize(out_image_y.size, Resampling.LANCZOS)
         out_image = Image.merge('YCbCr', [out_image_y, out_image_cb, out_image_cr]).convert('RGB')
 
-        out_image.save(
-        settings.output_path + f"{settings.upscale_factor}x_epoch_{settings.epoch}_optimized-{settings.optimized}_cuda-{settings.cuda}_tuning-{settings.tuning}_pruning-{settings.pruning}_mp-{settings.mixed_precision}_scheduler-{settings.scheduler_enabled}_output.png")
-        out_image.show("Upscaled Image")
+        out_image.save(f"{settings.name}.png")
+        out_image.show(f"{settings.name}.png")
     else:
-        print("No models yet")
+        print(f'{model_path} does not exist')
