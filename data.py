@@ -72,7 +72,7 @@ def calculate_valid_crop_size(crop_size, upscale_factor):
 def input_transform(crop_size, upscale_factor):
     return Compose([
         CenterCrop(crop_size),
-        Resize(size = crop_size // upscale_factor, interpolation = InterpolationMode.LANCZOS),
+        Resize(size = crop_size // upscale_factor, interpolation = InterpolationMode.BICUBIC),
         ToTensor(),
     ])
 
