@@ -49,19 +49,19 @@ def prune_model(model, amount = 0.2):
     )
 
 @measure_time
-def checkpoint(settings, epoch):
-    model_path = f"{settings.name}.pth"
-    torch.save(settings.model, model_path)
+def checkpoint(settings, model, epoch):
+    model_path = f"{settings.name}_ep[{epoch}].pth"
+    torch.save(model, model_path)
     print("===> Checkpoint saved to {} >===".format(model_path))
 
 @measure_time
-def export_model(settings, epoch):
-    settings.model.eval()
+def export_model(settings, model, epoch):
+    model.eval()
     img = Image.open(settings.input_path).convert('YCbCr')
     y, cb, cr = img.split()
     img_to_tensor = ToTensor()
     input_tensor = img_to_tensor(y).unsqueeze(0).to(settings.device)
-    traced_script = torch.jit.trace(settings.model, input_tensor)
-    traced_model_path = f"{settings.name}_TRACED.pth"
+    traced_script = torch.jit.trace(model, input_tensor)
+    traced_model_path = f"{settings.name}_ep[{epoch}]_TRACED.pth"
     traced_script.save(traced_model_path)
     print("===> Traced model saved to {}".format(traced_model_path))

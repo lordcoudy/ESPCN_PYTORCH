@@ -38,19 +38,19 @@ def objective(trial):
     model.to(settings.device)
     optimizer_tuning = optim.SGD(model.parameters(), lr = lr, momentum = 0.9)
     final_validation_loss = train_model(settings, dataloader, optimizer_tuning)
-    return final_validation_loss  # return the validation loss
+    return final_validation_loss
 
 @measure_time
 def tune(settings):
-    study = optuna.create_study(direction="minimize")
+    study = optuna.create_study(direction="minimize", study_name="ESPCN tuning")
     study.optimize(objective, n_trials = settings.trials,
-                   show_progress_bar = settings.show_progress_bar)  # perform the hyperparameter tuning
+                   show_progress_bar = settings.show_progress_bar)
     print('Best trial:')
     trial = study.best_trial
-    print('  Value: ', trial.value)
-    print('  Params: ')
+    print('\tValue: ', trial.value)
+    print('\tParams: ')
     for key, value in trial.params.items():
-        print(f'    {key}: {value}')
+        print(f'\t{key}: {value}')
         if key == 'lr':
             settings.learning_rate = value
         if key == 'batch_size':

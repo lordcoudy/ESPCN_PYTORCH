@@ -6,16 +6,15 @@ from utils import *
 
 
 @measure_time
-def test(settings):
-    m = settings.model
-    m.eval()
+def test(settings, model):
+    model.eval()
     avg_psnr = 0
     max_mse = 0
     min_mse = 1
     with torch.no_grad():
         for batch in settings.testing_data_loader:
             input_tensor, target_tensor = batch[0].to(settings.device), batch[1].to(settings.device)
-            output = m(input_tensor)
+            output = model(input_tensor)
             mse = settings.criterion(output, target_tensor)
             max_mse = max(max_mse, mse.item())
             min_mse = min(min_mse, mse.item())
@@ -28,9 +27,8 @@ def test(settings):
 
 
 @measure_time
-def train_model(settings):
-    m = settings.model
-    m.train()
+def train_model(settings, model):
+    model.train()
     for epoch in range(settings.epochs_number):
         epoch_loss = 0
         bar = progress.bar.IncrementalBar(f'Epoch {epoch + 1}', max = len(settings.training_data_loader))
@@ -45,16 +43,18 @@ def train_model(settings):
             print(f"===> Epoch[{epoch+1}]({iteration}/{len(settings.training_data_loader)}): Loss: {loss.item():.6f}")
         print(f"===> Epoch {epoch+1}/{settings.epochs_number} Complete: Avg. Loss: {epoch_loss / len(settings.training_data_loader):.12f}")
 
-        test(settings)
+        test(settings, model)
 
         bar.finish()
         # Learning rate decay
         if settings.scheduler_enabled:
             settings.scheduler.step(epoch_loss)
+        if settings.pruning and (epoch + 1) % 100 == 0:  # Prune every 100 epochs
+            prune_model(model, settings.prune_amount)
         # Checkpoint
         if epoch+1 in [25, 50, 100, 200, 500, 1000, 2000]:
-            checkpoint(settings, epoch+1)
-            export_model(settings, epoch+1)
+            checkpoint(settings, model, epoch+1)
+            export_model(settings, model, epoch+1)
 
 
 def train(settings):
@@ -62,4 +62,5 @@ def train(settings):
     print("===> Building model >===")
     print("Structure of the model: ", settings.model)
     print(f"{settings.name}: ", end = "\n", file = open(f'times\\time_train_model.txt', 'a+'))
-    train_model(settings)
+    model = settings.create_model()
+    train_model(settings, model)

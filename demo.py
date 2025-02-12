@@ -13,7 +13,7 @@ from utils import measure_time
 
 def run(settings):
     # Load model from file
-    model_path = f"{settings.name}.pth"
+    model_path = f"{settings.name}_ep[{settings.epoch}].pth"
     model_available = exists(model_path)
     if model_available:
         model = torch.load(model_path, weights_only = False)

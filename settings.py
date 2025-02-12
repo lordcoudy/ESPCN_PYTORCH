@@ -91,12 +91,8 @@ class Settings(metaclass = Singleton):
         torch.manual_seed(self._seed)
         bar.next()
         self._model = espcn(self._num_classes, self._upscale_factor).to(self._device)
-        if self._cuda and torch.cuda.is_available():
-            self._model = self._model.cuda()
         bar.next()
-        self._criterion = nn.MSELoss()
-        if self._cuda and torch.cuda.is_available():
-            self._criterion = self._criterion.cuda()
+        self._criterion = nn.MSELoss().to(self._device)
         bar.next()
         self._optimizer = optim.SGD(self._model.parameters(), lr = self._lr, momentum = 0.9)
         bar.next()
