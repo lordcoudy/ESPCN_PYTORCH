@@ -15,7 +15,7 @@ def run(settings):
     model_path = f"{settings.name}.pth"
     model_available = exists(model_path)
     if model_available:
-        model = torch.load(model_path)
+        model = torch.load(model_path, weights_only = False)
         # Training settings
         input_image = settings.input_path
         image = Image.open(input_image).convert('YCbCr')
