@@ -58,9 +58,9 @@ def train_model(settings, model):
 
 
 def train(settings):
-    model = settings.create_model()
     print(f"===> Upscale factor: {settings.upscale_factor} | Epochs: {settings.epochs_number} >===")
     print("===> Building model >===")
-    print("Structure of the model: ", model)
+    print("Structure of the model: ", settings.model)
     print(f"{settings.name}: ", end = "\n", file = open(f'times\\time_train_model.txt', 'a+'))
+    model = settings.create_model()
     train_model(settings, model)
