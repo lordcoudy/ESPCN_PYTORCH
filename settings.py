@@ -254,11 +254,12 @@ class Settings(metaclass = Singleton):
     def name(self):
         return self._model_path + f"{self._upscale_factor}x_epoch_{self._n_epochs}_optimized({self._optimized})_cuda({self._cuda})_tuning({self._tuning})_pruning({self._pruning})_mp({self._mp})_scheduler({self._scheduler_enabled})"
 
-    def create_model(self):
-        if self._optimized:
+    @classmethod
+    def create_model(cls):
+        if cls.optimized:
             from model_ench import ObjectAwareESPCN as espcn
         else:
             from model import ESPCN as espcn
-        model = espcn(upscale_factor=self.upscale_factor, num_classes=self.num_classes)
-        model.to(self.device)
+        model = espcn(upscale_factor=cls.upscale_factor, num_classes=cls.num_classes)
+        model.to(cls.device)
         return model
