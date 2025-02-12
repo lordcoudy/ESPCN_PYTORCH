@@ -1,7 +1,6 @@
 from math import log10
 
 import progress.bar
-import torch
 
 from utils import *
 
@@ -34,7 +33,7 @@ def train_model(settings):
     m.train()
     for epoch in range(settings.epochs_number):
         epoch_loss = 0
-        bar = progress.bar.IncrementalBar(f'Epoch {epoch + 1}', max = settings.training_data_loader.__len__())
+        bar = progress.bar.IncrementalBar(f'Epoch {epoch + 1}', max = len(settings.training_data_loader))
         bar.start()
         for iteration, batch in enumerate(settings.training_data_loader, 1):
             data, target = batch[0].to(settings.device), batch[1].to(settings.device)
@@ -43,8 +42,8 @@ def train_model(settings):
             loss = calculateLoss(settings, data, target)
             epoch_loss += loss.item()
             backPropagate(settings, loss)
-            print(f"===> Epoch[{epoch+1}]({iteration}/{len(settings.training_data_loader)}): Loss: {loss.item()}:.6f")
-        print(f"===> Epoch {epoch+1}/{settings.epochs_number} Complete: Avg. Loss: {epoch_loss / len(settings.training_data_loader)}:.12f")
+            print(f"===> Epoch[{epoch+1}]({iteration}/{len(settings.training_data_loader)}): Loss: {loss.item():.6f}")
+        print(f"===> Epoch {epoch+1}/{settings.epochs_number} Complete: Avg. Loss: {epoch_loss / len(settings.training_data_loader):.12f}")
 
         test(settings)
 

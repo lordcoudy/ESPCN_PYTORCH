@@ -12,16 +12,14 @@ def measure_time(func):
         result = func(*args, **kwargs)
         end = time.time()
 
-        print(func.__name__, end - start, end = "\n", file = open(f'times\\time_{func.__name__}.txt', 'a+'))
+        with open(f'times/time_{func.__name__}.txt', 'a+') as f:
+            print(func.__name__, end - start, file=f)
         return result
 
     return wrap
 
 def calculateLoss(settings, data, target):
-    device_type = 'cpu'
-    if settings.cuda:
-        device_type = 'cuda'
-    with torch.amp.autocast(device_type, enabled =settings.mixed_precision):
+    with torch.cuda.amp.autocast(enabled =(settings.mixed_precision and settings.cuda)):
         output = settings.model(data)
         loss = settings.criterion(output, target)
     return loss
@@ -37,15 +35,17 @@ def backPropagate(settings, loss):
 
 @measure_time
 def prune_model(model, amount = 0.2):
-    parameters_to_prune = (
-        (model.conv1, 'weight'),
-        (model.conv2, 'weight'),
-        (model.conv3, 'weight'),
-    )
+    parameters_to_prune = [
+        (module, 'weight') for module in model.modules() if isinstance(module, torch.nn.Conv2d)
+    ]
+    if not parameters_to_prune:
+        print("No Conv2D layers found for pruning.")
+        return
+
     prune.global_unstructured(
-            parameters = parameters_to_prune,
-            pruning_method = prune.L1Unstructured,
-            amount = amount,
+        parameters=parameters_to_prune,
+        pruning_method=prune.L1Unstructured,
+        amount=amount,
     )
 
 @measure_time
@@ -60,9 +60,7 @@ def export_model(settings, epoch):
     img = Image.open(settings.input_path).convert('YCbCr')
     y, cb, cr = img.split()
     img_to_tensor = ToTensor()
-    input_tensor = img_to_tensor(y).view(1, -1, y.size[1], y.size[0])
-    if settings.cuda and torch.cuda.is_available():
-        input_tensor = input_tensor.cuda()
+    input_tensor = img_to_tensor(y).unsqueeze(0).to(settings.device)
     traced_script = torch.jit.trace(settings.model, input_tensor)
     traced_model_path = f"{settings.name}_TRACED.pth"
     traced_script.save(traced_model_path)
