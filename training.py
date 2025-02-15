@@ -21,9 +21,11 @@ def test(settings, model):
             psnr = 10 * log10(1 / mse.item())
             avg_psnr += psnr
             print(f"PSNR: {psnr:.6f} dB | MSE: {mse.item():.6f}")
-    print(f"===> Avg. PSNR: {avg_psnr / len(settings.testing_data_loader):.12f} dB >===")
+    avg_psnr /= len(settings.testing_data_loader)
+    print(f"===> Avg. PSNR: {avg_psnr:.12f} dB >===")
     print(f"===> Max. MSE: {max_mse:.12f} >===")
     print(f"===> Min. MSE: {min_mse:.12f} >===")
+    return
 
 
 @measure_time
@@ -58,9 +60,9 @@ def train_model(settings, model):
 
 
 def train(settings):
+    model = settings.create_model()
     print(f"===> Upscale factor: {settings.upscale_factor} | Epochs: {settings.epochs_number} >===")
     print("===> Building model >===")
-    print("Structure of the model: ", settings.model)
+    print("Structure of the model: ", model)
     print(f"{settings.name}: ", end = "\n", file = open(f'times\\time_train_model.txt', 'a+'))
-    model = settings.create_model()
     train_model(settings, model)
