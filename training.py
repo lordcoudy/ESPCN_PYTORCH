@@ -27,7 +27,7 @@ def test(settings):
     print(f"===> Min. MSE: {min_mse:.12f} >===")
     return
 
-
+# TODO: FIX
 @measure_time
 def train_model(settings):
     settings.model.train()
@@ -54,13 +54,14 @@ def train_model(settings):
         if settings.pruning and (epoch + 1) % 100 == 0:  # Prune every 100 epochs
             prune_model(settings.model, settings.prune_amount)
         # Checkpoint
-        if epoch+1 in [25, 50, 100, 200, 500, 1000, 2000]:
+        if epoch+1 in [25, 50, 100, 200, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000]:
             checkpoint(settings, settings.model, epoch+1)
             export_model(settings, settings.model, epoch+1)
 
 
 def train(settings):
     print(f"===> Upscale factor: {settings.upscale_factor} | Epochs: {settings.epochs_number} >===")
+    print(f"===> Batch size: {settings.batch_size} | Learning rate: {settings.learning_rate} >===")
     print("===> Building model >===")
     print("Structure of the model: ", settings.model)
     print(f"{settings.name}: ", end = "\n", file = open(f'times\\time_train_model.txt', 'a+'))

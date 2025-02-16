@@ -94,7 +94,7 @@ class Settings(metaclass = Singleton):
         bar.next()
         self._criterion = nn.MSELoss().to(self._device)
         bar.next()
-        self._optimizer = optim.SGD(self._model.parameters(), lr = self._lr, momentum = 0.9)
+        self._optimizer = optim.SGD(self._model.parameters(), lr = self._lr, momentum = 0.99)
         bar.next()
         self._scheduler_enabled = self.dictionary['scheduler']
         if self._scheduler_enabled:
@@ -103,7 +103,7 @@ class Settings(metaclass = Singleton):
                                 mode='min', # or 'max' if monitoring metric like PSNR
                                 factor=0.1,  # Reduce LR by a factor of 0.1
                                 patience=10, # Reduce LR after 10 epochs of no improvement in val_loss
-                                min_lr=1e-6 # Minimum learning rate
+                                min_lr=1e-9 # Minimum learning rate
             )
         bar.next()
         device_type = 'cpu'
@@ -259,6 +259,5 @@ class Settings(metaclass = Singleton):
             from model_ench import ObjectAwareESPCN as espcn
         else:
             from model import ESPCN as espcn
-        model = espcn(upscale_factor=self.upscale_factor, num_classes=self.num_classes)
-        model.to(self.device)
+        model = espcn(upscale_factor=self.upscale_factor, num_classes=self.num_classes).to(self.device)
         return model

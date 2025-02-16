@@ -18,16 +18,30 @@ def load_img(filepath):
 
 
 class DatasetFromFolder(data.Dataset):
-    def __init__(self, image_dir, in_transform=None, tgt_transform=None):
+    def __init__(self, image_dir, in_transform=None, tgt_transform=None, rotation=True):
         super(DatasetFromFolder, self).__init__()
         self.image_filenames = [join(image_dir, x) for x in os.listdir(image_dir) if is_image_file(x)]
+        self.image_items = []
+
+        if rotation:
+            for filename in self.image_filenames:
+                for angle in [0, 90, 180, 270]:
+                    self.image_items.append((filename, angle))
+        else:
+            for filename in self.image_filenames:
+                self.image_items.append((filename, 0)) # angle 0 for no rotation
 
         self.input_transform = in_transform
         self.target_transform = tgt_transform
 
     def __getitem__(self, index):
-        in_img = load_img(self.image_filenames[index])
+        filename, angle = self.image_items[index]
+        in_img = load_img(filename)
         target = in_img.copy()
+
+        if angle != 0:
+            in_img = in_img.rotate(angle)
+            target = target.rotate(angle)
 
         if self.input_transform:
             in_img = self.input_transform(in_img)
@@ -37,7 +51,7 @@ class DatasetFromFolder(data.Dataset):
         return in_img, target
 
     def __len__(self):
-        return len(self.image_filenames)
+        return len(self.image_items)
 
 
 def download_bsd300(dest="dataset"):

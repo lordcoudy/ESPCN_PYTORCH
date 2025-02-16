@@ -3,24 +3,24 @@ input_path: "./dataset/BSDS300/images/test/3096.jpg"
 output_path: "./results/"
 model_path: "./models/"
 upscale_factor: 2 # 2, 3, 4, 8
-mode: "train"  # "train" or "demo"
+mode: "demo"  # "train" or "demo"
 # Training settings (only for mode: "train"). Do not change
-batch_size: 64
+batch_size: 32
 test_batch_size: 8
-epochs_number: 25
-epoch: 25
-learning_rate: 0.0001
+epochs_number: 5000
+epoch: 500
+learning_rate: 0.0000003666928309169449
 threads: 8
 seed: 123
-num_classes: 4
+num_classes: 10
 # Optimizations
 cuda: true
 tuning: true
-mixed_precision: false
+mixed_precision: true
 optimized: false
 scheduler: true
 pruning: false
 # Miscellaneous
-trials: 100
+trials: 500
 show_progress_bar: true
 prune_amount: 0.2

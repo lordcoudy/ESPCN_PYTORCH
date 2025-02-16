@@ -3,14 +3,12 @@ import torch.nn as nn
 from torchvision import models
 
 from model import ESPCN
-# from utils import log
-
 
 # Define the Classifier Network
 class Classifier(nn.Module):
     def __init__(self, num_classes):
         super(Classifier, self).__init__()
-        self.base_model = models.resnet18(pretrained = True)
+        self.base_model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
         # Extract the first conv layer's parameters
         num_channels = 1
         num_filters = self.base_model.conv1.out_channels
@@ -32,10 +30,10 @@ class Classifier(nn.Module):
 
 # Define the Object-Aware Super-Resolution Model
 class ObjectAwareESPCN(nn.Module):
-    def __init__(self, num_classes, scale_factor, num_channels = 1):
+    def __init__(self, num_classes, upscale_factor, num_channels = 1):
         super(ObjectAwareESPCN, self).__init__()
         self.classifier = Classifier(num_classes)
-        self.espcn_networks = nn.ModuleList([ESPCN(upscale_factor = scale_factor, num_classes = num_channels) for _ in range(num_classes)])
+        self.espcn_networks = nn.ModuleList([ESPCN(upscale_factor = upscale_factor, num_classes = num_channels) for _ in range(num_classes)])
 
     def forward(self, x):
         # Classify the object

@@ -36,7 +36,7 @@ def objective(trial):
         pin_memory=True if settings.device == 'cuda' else False)
     model = settings.create_model()
     model.to(settings.device)
-    optimizer_tuning = optim.SGD(model.parameters(), lr = lr, momentum = 0.9)
+    optimizer_tuning = optim.SGD(model.parameters(), lr = lr, momentum = 0.99)
     final_validation_loss = train_model(settings, dataloader, optimizer_tuning)
     return final_validation_loss
 
