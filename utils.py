@@ -19,7 +19,7 @@ def measure_time(func):
     return wrap
 
 def calculateLoss(settings, data, target):
-    with torch.amp.autocast(device_type = "cuda" if settings.cuda else "cpu", enabled =(settings.mixed_precision and settings.cuda)):
+    with torch.amp.autocast(device_type = "cuda" if settings.cuda else "cpu", enabled =settings.mixed_precision):
         output = settings.model(data)
         loss = settings.criterion(output, target)
     return loss

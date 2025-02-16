@@ -32,8 +32,8 @@ def run(settings):
         out = out.cpu().squeeze(0).clamp(0, 1)
         out_image_y = ToPILImage()(out)
 
-        out_image_cb = cb.resize(out_image_y.size, Resampling.BICUBIC)
-        out_image_cr = cr.resize(out_image_y.size, Resampling.BICUBIC)
+        out_image_cb = cb.resize(out_image_y.size, Resampling.LANCZOS)
+        out_image_cr = cr.resize(out_image_y.size, Resampling.LANCZOS)
         out_image = Image.merge('YCbCr', [out_image_y, out_image_cb, out_image_cr]).convert('RGB')
 
         out_image.save(f"{settings.name}.png")

@@ -1,5 +1,8 @@
+import gzip
+import shutil
 import tarfile
 import os
+import zipfile
 from os.path import join, exists, basename
 import torch.utils.data as data
 from PIL import Image
@@ -55,17 +58,20 @@ class DatasetFromFolder(data.Dataset):
 
 
 def download_bsd300(dest="dataset"):
-    output_image_dir = join(dest, "BSDS300/images")
+    # output_image_dir = join(dest, "BSDS300/images")
+    output_image_dir = join(dest, "BSDS500/images")
 
     if not exists(output_image_dir) or len(os.listdir(output_image_dir)) == 0:
         os.makedirs(dest, exist_ok=True)
-        url = "http://www2.eecs.berkeley.edu/Research/Projects/CS/vision/bsds/BSDS300-images.tgz"
-        file_path = join(dest, basename(url))
+        # url = "http://www2.eecs.berkeley.edu/Research/Projects/CS/vision/bsds/BSDS300-images.tgz"
+        # url = "https://web.archive.org/web/20160306133802/http://www.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/BSR/BSR_bsds500.tgz"
+        url = "https://drive.google.com/file/d/1fTBtqwfUVhelz-kE1PkJ0cyeje7dB_zV/view?usp=sharing"
+        file_path = join(dest, "BSDS500.tar.gz")
 
         print("Downloading dataset:", url)
         urllib.request.urlretrieve(url, file_path)
 
-        print("Extracting dataset...")
+        print("Extracting dataset:", file_path)
         with tarfile.open(file_path, "r:gz") as tar:
             tar.extractall(path=dest)  # Safer extraction
 
@@ -101,8 +107,17 @@ def get_training_set(upscale_factor, img_size=256):
 
     return DatasetFromFolder(train_dir,
                              in_transform=input_transform(img_size, upscale_factor),
-                             tgt_transform=target_transform(img_size))
+                             tgt_transform=target_transform(img_size),
+                             rotation=True)
 
+def get_validation_set(upscale_factor, img_size=256):
+    root_dir = download_bsd300()
+    val_dir = join(root_dir, "val")
+
+    return DatasetFromFolder(val_dir,
+                             in_transform=input_transform(img_size, upscale_factor),
+                             tgt_transform=target_transform(img_size),
+                             rotation=False)
 
 def get_test_set(upscale_factor, img_size=256):
     root_dir = download_bsd300()
@@ -110,4 +125,5 @@ def get_test_set(upscale_factor, img_size=256):
 
     return DatasetFromFolder(test_dir,
                              in_transform=input_transform(img_size, upscale_factor),
-                             tgt_transform=target_transform(img_size))
+                             tgt_transform=target_transform(img_size),
+                             rotation=False)

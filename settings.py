@@ -9,7 +9,7 @@ try:
 except ImportError:
     from yaml import Loader
 
-from data import get_test_set, get_training_set
+from data import get_test_set, get_training_set, get_validation_set
 
 
 class Singleton(type):
@@ -28,7 +28,7 @@ def instance():
 
 class Settings(metaclass = Singleton):
     def __init__(self):
-        bar = progress.bar.IncrementalBar('Initializing ', max = 34)
+        bar = progress.bar.IncrementalBar('Initializing ', max = 36)
         bar.start()
 
         stream = open("settings.yaml", 'r')
@@ -78,6 +78,8 @@ class Settings(metaclass = Singleton):
         bar.next()
         test_set = get_test_set(self._upscale_factor)
         bar.next()
+        val_set = get_validation_set(self._upscale_factor)
+        bar.next()
         if self._optimized:
             from model_ench import ObjectAwareESPCN as espcn
             self._pruning = False
@@ -117,6 +119,9 @@ class Settings(metaclass = Singleton):
         bar.next()
         self._testing_data_loader = DataLoader(dataset = test_set, num_workers = self._threads,
                                                batch_size = self._test_batch_size, shuffle = False)
+        bar.next()
+        self._validation_data_loader = DataLoader(dataset = val_set, num_workers = self._threads,
+                                                  batch_size=self._test_batch_size, shuffle=False)
         bar.next()
         self._prune_amount = self.dictionary['prune_amount']
         bar.next()
@@ -233,6 +238,10 @@ class Settings(metaclass = Singleton):
     @property
     def testing_data_loader(self):
         return self._testing_data_loader
+
+    @property
+    def validation_data_loader(self):
+        return self._validation_data_loader
 
     @property
     def pruning(self):
