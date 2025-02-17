@@ -15,7 +15,7 @@ seed: 123
 num_classes: 4
 # Optimizations
 cuda: false
-tuning: false
+tuning: true
 mixed_precision: true
 optimized: false
 scheduler: true
