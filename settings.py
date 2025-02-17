@@ -121,7 +121,7 @@ class Settings(metaclass = Singleton):
                                                batch_size = self._test_batch_size, shuffle = False)
         bar.next()
         self._validation_data_loader = DataLoader(dataset = val_set, num_workers = self._threads,
-                                                  batch_size=self._test_batch_size, shuffle=False)
+                                                  batch_size=self._test_batch_size, shuffle=True)
         bar.next()
         self._prune_amount = self.dictionary['prune_amount']
         bar.next()

@@ -117,7 +117,7 @@ def get_validation_set(upscale_factor, img_size=256):
     return DatasetFromFolder(val_dir,
                              in_transform=input_transform(img_size, upscale_factor),
                              tgt_transform=target_transform(img_size),
-                             rotation=False)
+                             rotation=True)
 
 def get_test_set(upscale_factor, img_size=256):
     root_dir = download_bsd300()
@@ -126,4 +126,4 @@ def get_test_set(upscale_factor, img_size=256):
     return DatasetFromFolder(test_dir,
                              in_transform=input_transform(img_size, upscale_factor),
                              tgt_transform=target_transform(img_size),
-                             rotation=False)
+                             rotation=True)

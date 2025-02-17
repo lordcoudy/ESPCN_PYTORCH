@@ -14,8 +14,7 @@ def test(settings):
     with torch.no_grad():
         for batch in settings.testing_data_loader:
             input_tensor, target_tensor = batch[0].to(settings.device), batch[1].to(settings.device)
-            output = settings.model(input_tensor)
-            mse = calculateLoss(settings, output, target_tensor)
+            mse = calculateLoss(settings, input_tensor, target_tensor)
             max_mse = max(max_mse, mse.item())
             min_mse = min(min_mse, mse.item())
             psnr = 10 * log10(1 / mse.item())
@@ -53,7 +52,7 @@ def train_model(settings):
                 epoch_val_loss += val_loss.item()
                 bar.next()
         settings.model.train()  # set model back to train mode
-        print(f"===> Epoch {epoch+1}/{settings.epochs_number} Complete: Avg. Loss: {epoch_loss / len(settings.training_data_loader):.12f}")
+        print(f"===> Epoch {epoch+1}/{settings.epochs_number} Complete: Avg. Loss: {epoch_loss / len(settings.training_data_loader):.12f} Avg. Val. Loss: {epoch_val_loss / len(settings.validation_data_loader)}")
 
         test(settings)
 
