@@ -100,7 +100,8 @@ class Settings(metaclass = Singleton):
         bar.next()
         self._criterion = nn.MSELoss().to(self._device)
         bar.next()
-        self._optimizer = optim.SGD(self._model.parameters(), lr = self._lr, momentum = self._momentum, weight_decay=self._weight_decay)
+        # self._optimizer = optim.SGD(self._model.parameters(), lr = self._lr, momentum = self._momentum, weight_decay=self._weight_decay)
+        self._optimizer = optim.Adam(self._model.parameters(), lr = self._lr, weight_decay=self._weight_decay)
         bar.next()
         device_type = 'cpu'
         if self._cuda:

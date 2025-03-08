@@ -3,10 +3,12 @@ import shutil
 import tarfile
 import os
 import zipfile
+import random
 from os.path import join, exists, basename
 import torch.utils.data as data
 from PIL import Image
 from torchvision.transforms import Compose, CenterCrop, Resize, ToTensor, InterpolationMode
+from torchvision.transforms import functional as F
 from six.moves import urllib
 from torchvision.transforms.v2 import RandomHorizontalFlip, RandomVerticalFlip, RandomRotation
 
@@ -22,35 +24,18 @@ def load_img(filepath):
 
 
 class DatasetFromFolder(data.Dataset):
-    def __init__(self, image_dir, in_transform=None, tgt_transform=None, rotation=True):
+    def __init__(self, image_dir, transform=None):
         super(DatasetFromFolder, self).__init__()
-        self.image_filenames = [join(image_dir, x) for x in os.listdir(image_dir) if is_image_file(x)]
-        self.image_items = []
-
-        if rotation:
-            for filename in self.image_filenames:
-                for angle in [0, 90, 180, 270]:
-                    self.image_items.append((filename, angle))
-        else:
-            for filename in self.image_filenames:
-                self.image_items.append((filename, 0)) # angle 0 for no rotation
-
-        self.input_transform = in_transform
-        self.target_transform = tgt_transform
+        self.image_items = [join(image_dir, x) for x in os.listdir(image_dir) if is_image_file(x)]
+        self.transform = transform
 
     def __getitem__(self, index):
-        filename, angle = self.image_items[index]
+        filename = self.image_items[index]
         in_img = load_img(filename)
         target = in_img.copy()
 
-        if angle != 0:
-            in_img = in_img.rotate(angle)
-            target = target.rotate(angle)
-
-        if self.input_transform:
-            in_img = self.input_transform(in_img)
-        if self.target_transform:
-            target = self.target_transform(target)
+        if self.transform:
+            in_img, target = self.transform(in_img, target)
 
         return in_img, target
 
@@ -85,24 +70,42 @@ def calculate_valid_crop_size(img_size, upscale_factor):
     return img_size - (img_size % upscale_factor)
 
 
-def input_transform(img_size, upscale_factor):
+class RandomTransform:
+    def __init__(self, crop_size, upscale_factor):
+        self.crop_size = crop_size
+        self.upscale_factor = upscale_factor
+
+    def __call__(self, in_img, target):
+        # Apply random horizontal flip
+        if random.random() > 0.5:
+            in_img = F.hflip(in_img)
+            target = F.hflip(target)
+
+        # Apply random vertical flip
+        if random.random() > 0.5:
+            in_img = F.vflip(in_img)
+            target = F.vflip(target)
+
+        # Apply random rotation
+        angle = random.uniform(-10, 10)
+        in_img = F.rotate(in_img, angle)
+        target = F.rotate(target, angle)
+
+        # Apply center crop and resize
+        in_img = F.center_crop(in_img, self.crop_size)
+        target = F.center_crop(target, self.crop_size)
+        in_img = F.resize(in_img, self.crop_size // self.upscale_factor, interpolation=InterpolationMode.LANCZOS)
+        target = F.resize(target, self.crop_size, interpolation=InterpolationMode.LANCZOS)
+
+        # Convert to tensor
+        in_img = ToTensor()(in_img)
+        target = ToTensor()(target)
+
+        return in_img, target
+
+def transform(img_size, upscale_factor):
     crop_size = calculate_valid_crop_size(img_size, upscale_factor)
-    return Compose([
-        CenterCrop(crop_size),  # Adaptive cropping
-        Resize(crop_size // upscale_factor, interpolation=InterpolationMode.LANCZOS),  # Better downscaling
-        RandomHorizontalFlip(),
-        RandomVerticalFlip(),
-        RandomRotation(10),
-        ToTensor(),
-    ])
-
-
-def target_transform(img_size):
-    crop_size = calculate_valid_crop_size(img_size, 1)
-    return Compose([
-        CenterCrop(crop_size),
-        ToTensor(),
-    ])
+    return RandomTransform(crop_size, upscale_factor)
 
 
 def get_training_set(upscale_factor, img_size=256):
@@ -110,24 +113,18 @@ def get_training_set(upscale_factor, img_size=256):
     train_dir = join(root_dir, "train")
 
     return DatasetFromFolder(train_dir,
-                             in_transform=input_transform(img_size, upscale_factor),
-                             tgt_transform=target_transform(img_size),
-                             rotation=True)
+                             transform=transform(img_size, upscale_factor))
 
 def get_validation_set(upscale_factor, img_size=256):
     root_dir = download_bsd300()
     val_dir = join(root_dir, "val")
 
     return DatasetFromFolder(val_dir,
-                             in_transform=input_transform(img_size, upscale_factor),
-                             tgt_transform=target_transform(img_size),
-                             rotation=True)
+                             transform=transform(img_size, upscale_factor))
 
 def get_test_set(upscale_factor, img_size=256):
     root_dir = download_bsd300()
     test_dir = join(root_dir, "test")
 
     return DatasetFromFolder(test_dir,
-                             in_transform=input_transform(img_size, upscale_factor),
-                             tgt_transform=target_transform(img_size),
-                             rotation=True)
+                             transform=transform(img_size, upscale_factor))

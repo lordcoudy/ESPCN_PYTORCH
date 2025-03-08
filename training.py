@@ -42,6 +42,9 @@ def train_model(settings):
             epoch_loss += loss.item()
             backPropagate(settings, loss)
             print(f"===> Epoch[{epoch+1}]({iteration}/{len(settings.training_data_loader)}): Loss: {loss.item():.6f}")
+            # Learning rate decay
+            if settings.scheduler_enabled:
+                settings.scheduler.step(epoch_val_loss)
 
         # Validation Phase
         settings.model.eval()  # Set model to evaluation mode
@@ -57,9 +60,7 @@ def train_model(settings):
         test(settings)
 
         bar.finish()
-        # Learning rate decay
-        if settings.scheduler_enabled:
-            settings.scheduler.step(epoch_val_loss)
+
         if settings.pruning and (epoch + 1) % 100 == 0:  # Prune every 100 epochs
             prune_model(settings.model, settings.prune_amount)
         # Checkpoint
