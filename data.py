@@ -8,6 +8,7 @@ import torch.utils.data as data
 from PIL import Image
 from torchvision.transforms import Compose, CenterCrop, Resize, ToTensor, InterpolationMode
 from six.moves import urllib
+from torchvision.transforms.v2 import RandomHorizontalFlip, RandomVerticalFlip, RandomRotation
 
 
 def is_image_file(filename):
@@ -89,6 +90,9 @@ def input_transform(img_size, upscale_factor):
     return Compose([
         CenterCrop(crop_size),  # Adaptive cropping
         Resize(crop_size // upscale_factor, interpolation=InterpolationMode.LANCZOS),  # Better downscaling
+        RandomHorizontalFlip(),
+        RandomVerticalFlip(),
+        RandomRotation(10),
         ToTensor(),
     ])
 

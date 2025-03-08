@@ -73,5 +73,7 @@ def train(settings):
     print(f"===> Batch size: {settings.batch_size} | Learning rate: {settings.learning_rate} >===")
     print("===> Building model >===")
     print("Structure of the model: ", settings.model)
-    print(f"{settings.name}: ", end = "\n", file = open(f'times\\time_train_model.txt', 'a+'))
+    os.makedirs('times', exist_ok=True)
+    with open(os.path.join('times', 'time_train_model.txt'), 'a+') as f:
+        print(f"{settings.name}: ", end="\n", file=f)
     train_model(settings)

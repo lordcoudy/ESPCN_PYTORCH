@@ -1,3 +1,4 @@
+import os
 import time
 
 import torch
@@ -12,6 +13,7 @@ def measure_time(func):
         result = func(*args, **kwargs)
         end = time.time()
 
+        os.makedirs('times', exist_ok=True)
         with open(f'times/time_{func.__name__}.txt', 'a+') as f:
             print(func.__name__, end - start, file=f)
         return result
@@ -32,6 +34,7 @@ def backPropagate(settings, loss):
     else:
         loss.backward()
         settings.optimizer.step()
+    settings.optimizer.zero_grad()
 
 @measure_time
 def prune_model(model, amount = 0.2):

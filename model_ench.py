@@ -33,8 +33,7 @@ class ObjectAwareESPCN(nn.Module):
     def __init__(self, num_classes, upscale_factor, num_channels = 1):
         super(ObjectAwareESPCN, self).__init__()
         self.classifier = Classifier(num_classes)
-        self.espcn_networks = nn.ModuleList([ESPCN(upscale_factor = upscale_factor, num_classes = num_channels) for _ in range(num_classes)])
-
+        self.espcn_networks = nn.ModuleList([ESPCN(num_classes=1, upscale_factor=upscale_factor, num_channels=num_channels) for _ in range(num_classes)])
     def forward(self, x):
         # Classify the object
         class_probs = self.classifier(x)

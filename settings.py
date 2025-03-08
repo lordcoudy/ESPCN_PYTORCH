@@ -28,7 +28,7 @@ def instance():
 
 class Settings(metaclass = Singleton):
     def __init__(self):
-        bar = progress.bar.IncrementalBar('Initializing ', max = 36)
+        bar = progress.bar.IncrementalBar('Initializing ', max = 38)
         bar.start()
 
         stream = open("settings.yaml", 'r')
@@ -57,6 +57,10 @@ class Settings(metaclass = Singleton):
         self._num_classes = self.dictionary['num_classes']
         bar.next()
         self._lr = self.dictionary['learning_rate']
+        bar.next()
+        self._momentum = self.dictionary['momentum']
+        bar.next()
+        self._weight_decay = self.dictionary['weight_decay']
         bar.next()
         self._mp = self.dictionary['mixed_precision']
         bar.next()
@@ -96,17 +100,7 @@ class Settings(metaclass = Singleton):
         bar.next()
         self._criterion = nn.MSELoss().to(self._device)
         bar.next()
-        self._optimizer = optim.SGD(self._model.parameters(), lr = self._lr, momentum = 0.99)
-        bar.next()
-        self._scheduler_enabled = self.dictionary['scheduler']
-        if self._scheduler_enabled:
-            self._scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-                                self._optimizer,
-                                mode='min', # or 'max' if monitoring metric like PSNR
-                                factor=0.1,  # Reduce LR by a factor of 0.1
-                                patience=10, # Reduce LR after 10 epochs of no improvement in val_loss
-                                min_lr=1e-9 # Minimum learning rate
-            )
+        self._optimizer = optim.SGD(self._model.parameters(), lr = self._lr, momentum = self._momentum, weight_decay=self._weight_decay)
         bar.next()
         device_type = 'cpu'
         if self._cuda:
@@ -122,6 +116,17 @@ class Settings(metaclass = Singleton):
         bar.next()
         self._validation_data_loader = DataLoader(dataset = val_set, num_workers = self._threads,
                                                   batch_size=self._test_batch_size, shuffle=True)
+        bar.next()
+        self._scheduler_enabled = self.dictionary['scheduler']
+        if self._scheduler_enabled:
+            self._scheduler = optim.lr_scheduler.OneCycleLR(
+                self._optimizer,
+                max_lr=self._lr,
+                steps_per_epoch=len(self._training_data_loader),
+                epochs=self._n_epochs,
+                anneal_strategy='cos',
+                final_div_factor=1e4
+            )
         bar.next()
         self._prune_amount = self.dictionary['prune_amount']
         bar.next()
@@ -180,6 +185,22 @@ class Settings(metaclass = Singleton):
         self._lr = lr
 
     @property
+    def momentum(self):
+        return self._momentum
+
+    @momentum.setter
+    def momentum(self, momentum : float):
+        self._momentum = momentum
+
+    @property
+    def weight_decay(self):
+        return self._weight_decay
+
+    @weight_decay.setter
+    def weight_decay(self, weight_decay : float):
+        self._weight_decay = weight_decay
+
+    @property
     def mixed_precision(self):
         return self._mp
 
@@ -218,6 +239,10 @@ class Settings(metaclass = Singleton):
     @property
     def optimizer(self):
         return self._optimizer
+
+    @optimizer.setter
+    def optimizer(self, optimizer):
+        self._optimizer = optimizer
 
     @property
     def scheduler_enabled(self):

@@ -4,12 +4,15 @@ output_path: "./results/"
 model_path: "./models/"
 upscale_factor: 2 # 2, 3, 4, 8
 mode: "train"  # "train" or "demo"
+# Epoch settings
+epochs_number: 25
+epoch: 25
 # Training settings (only for mode: "train"). Do not change
 batch_size: 32
 test_batch_size: 8
-epochs_number: 25
-epoch: 25
 learning_rate: 0.0000003666928309169449
+momentum: 0.9
+weight_decay: 0.0001
 threads: 8
 seed: 123
 num_classes: 4

@@ -9,7 +9,7 @@ For training it uses the BSD300 dataset, which contains 300 high-resolution imag
 
 ## Requirements
 - Python 3.x
-- PyTorch
+- PyTorch (w/ CUDA support)
 - torchvision
 - numpy
 - matplotlib
@@ -31,6 +31,7 @@ For training it uses the BSD300 dataset, which contains 300 high-resolution imag
 3. Install the required packages:
     ```bash
     pip install -r requirements.txt
+    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
     ```
 
 ## Usage
@@ -64,23 +65,25 @@ model_path: "./models/"
 upscale_factor: 2 # 2, 3, 4, 8
 mode: "train"  # "train" or "demo"
 # Training settings (only for mode: "train"). Do not change
-batch_size: 64
+epochs_number: 25
+epoch: 25
+batch_size: 32
 test_batch_size: 8
-epochs_number: 1000
-epoch: 1000
-learning_rate: 0.0001
+learning_rate: 0.0000003666928309169449
+momentum: 0.9
+weight_decay: 0.0001
 threads: 8
 seed: 123
 num_classes: 4
 # Optimizations
-cuda: true
+cuda: false
 tuning: true
-mixed_precision: false
+mixed_precision: true
 optimized: false
 scheduler: true
 pruning: false
 # Miscellaneous
-trials: 100
+trials: 25
 show_progress_bar: true
 prune_amount: 0.2
 ```
