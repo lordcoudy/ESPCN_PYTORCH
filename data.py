@@ -1,16 +1,14 @@
-import gzip
-import shutil
 import tarfile
 import os
-import zipfile
 import random
-from os.path import join, exists, basename
+import tarfile
+from os.path import join, exists
+
 import torch.utils.data as data
 from PIL import Image
-from torchvision.transforms import Compose, CenterCrop, Resize, ToTensor, InterpolationMode
-from torchvision.transforms import functional as F
 from six.moves import urllib
-from torchvision.transforms.v2 import RandomHorizontalFlip, RandomVerticalFlip, RandomRotation
+from torchvision.transforms import ToTensor, InterpolationMode
+from torchvision.transforms import functional as F
 
 
 def is_image_file(filename):

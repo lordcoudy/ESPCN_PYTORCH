@@ -2,7 +2,6 @@ from demo import run
 from settings import instance as settings
 from training import train
 from tuning import tune
-from utils import prune_model
 
 if __name__ == '__main__':
     if settings().mode == 'train':

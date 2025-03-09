@@ -4,6 +4,7 @@ from torchvision import models
 
 from model import ESPCN
 
+
 # Define the Classifier Network
 class Classifier(nn.Module):
     def __init__(self, num_classes):

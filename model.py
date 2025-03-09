@@ -1,6 +1,7 @@
+import torch
 import torch.nn as nn
 from torch.nn import init
-import torch
+
 
 def ICNR(tensor, initializer, upscale_factor=2, *args, **kwargs):
     "tensor: the 2-dimensional Tensor or more"

@@ -2,14 +2,12 @@ from __future__ import print_function
 
 from os.path import exists
 
-import numpy as np
 import torch
 from PIL import Image
 from PIL.Image import Resampling
 from torchvision.transforms import ToTensor
 from torchvision.transforms.v2 import ToPILImage
 
-from utils import measure_time
 
 def run(settings):
     # Load model from file

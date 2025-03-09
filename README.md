@@ -8,13 +8,18 @@ The model is designed to upscale low-resolution images to higher resolutions eff
 For training it uses the BSD300 dataset, which contains 300 high-resolution images.
 
 ## Requirements
+Described in `requirements.txt`:
 - Python 3.x
 - PyTorch (w/ CUDA support)
 - torchvision
 - numpy
-- matplotlib
 - pyyaml
 - PIL (Pillow)
+- SIX
+- optuna
+- progress
+- click
+- fsspec
 
 ## Installation
 1. Clone the repository:
@@ -51,6 +56,8 @@ To run the demo, set the mode to demo in settings.yaml:
 ```yaml
 mode: demo
 ```
+**Note:** You should have a .pth model file in the models directory.\
+\
 Then run:
 ```commandline
 python main.py
@@ -64,35 +71,40 @@ output_path: "./results/"
 model_path: "./models/"
 upscale_factor: 2 # 2, 3, 4, 8
 mode: "train"  # "train" or "demo"
+# Epoch settings
+epochs_number: 2500
+epoch: 2500
+checkpoint_frequency: 50
 # Training settings (only for mode: "train"). Do not change
-epochs_number: 25
-epoch: 25
 batch_size: 32
 test_batch_size: 8
-learning_rate: 0.0000003666928309169449
+learning_rate: 0.0001
 momentum: 0.9
 weight_decay: 0.0001
 threads: 8
 seed: 123
 num_classes: 4
 # Optimizations
-cuda: false
+cuda: true
 tuning: true
-mixed_precision: true
+mixed_precision: false
 optimized: false
 scheduler: true
 pruning: false
 # Miscellaneous
-trials: 25
+trials: 100
 show_progress_bar: true
 prune_amount: 0.2
 ```
 ## Model Export
-The model can be exported after training. The exported model will be saved in the specified directory with the naming convention x_traced_espcn_epoch_<epoch>.pt.
+The model can be exported after training. The exported model will be saved in the specified directory with the naming convention:
+```
+{upscale_factor}x_epoch_{n_epochs}_optimized({optimized})_cuda({cuda})_tuning({tuning})_pruning({pruning})_mp({mp})_scheduler({scheduler_enabled}).pt
+```
 ## Pruning the Model
-The model can be pruned to reduce its size and improve inference speed. The pruning amount can be adjusted in the pruneModel function. 
+The model can be pruned to reduce its size and improve inference speed. The pruning amount can be adjusted in the settings file. 
 ## Testing the Model
-The model can be tested using the test function, which evaluates the model on the test dataset and prints the average PSNR, maximum MSE, and minimum MSE.
+The model is tested using the test function, which evaluates the model on the test dataset and prints the average PSNR, maximum MSE, and minimum MSE.
 ## License
 This project is licensed under the MIT License.
 ```
