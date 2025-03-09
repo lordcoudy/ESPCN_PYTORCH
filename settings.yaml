@@ -5,25 +5,26 @@ model_path: "./models/"
 upscale_factor: 2 # 2, 3, 4, 8
 mode: "train"  # "train" or "demo"
 # Epoch settings
-epochs_number: 25
-epoch: 25
+epochs_number: 2500
+epoch: 2500
+checkpoint_frequency: 50
 # Training settings (only for mode: "train"). Do not change
 batch_size: 32
 test_batch_size: 8
-learning_rate: 0.0000003666928309169449
+learning_rate: 0.0001
 momentum: 0.9
 weight_decay: 0.0001
 threads: 8
 seed: 123
 num_classes: 4
 # Optimizations
-cuda: false
+cuda: true
 tuning: true
-mixed_precision: true
+mixed_precision: false
 optimized: false
 scheduler: true
 pruning: false
 # Miscellaneous
-trials: 25
+trials: 100
 show_progress_bar: true
 prune_amount: 0.2

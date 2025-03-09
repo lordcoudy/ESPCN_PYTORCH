@@ -28,7 +28,7 @@ def instance():
 
 class Settings(metaclass = Singleton):
     def __init__(self):
-        bar = progress.bar.IncrementalBar('Initializing ', max = 38)
+        bar = progress.bar.IncrementalBar('Initializing ', max = 39)
         bar.start()
 
         stream = open("settings.yaml", 'r')
@@ -39,6 +39,8 @@ class Settings(metaclass = Singleton):
         self._upscale_factor = self.dictionary['upscale_factor']
         bar.next()
         self._n_epochs = self.dictionary['epochs_number']
+        bar.next()
+        self._checkpoint_freq = self.dictionary['checkpoint_frequency']
         bar.next()
         self._model_path = self.dictionary['model_path']
         bar.next()
@@ -140,6 +142,10 @@ class Settings(metaclass = Singleton):
     @property
     def epochs_number(self):
         return self._n_epochs
+
+    @property
+    def checkpoint_frequency(self):
+        return self._checkpoint_freq
 
     @property
     def model_path(self):
