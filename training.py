@@ -42,28 +42,25 @@ def train_model(settings):
             epoch_loss += loss.item()
             backPropagate(settings, loss)
             print(f"===> Epoch[{epoch+1}]({iteration}/{len(settings.training_data_loader)}): Loss: {loss.item():.6f}")
-            # Learning rate decay
+
             if settings.scheduler_enabled:
                 settings.scheduler.step(epoch_val_loss)
 
-        # Validation Phase
-        settings.model.eval()  # Set model to evaluation mode
-        with torch.no_grad():  # Disable gradient calculation for validation
+        settings.model.eval()
+        with torch.no_grad():
             for val_iteration, val_batch in enumerate(settings.validation_data_loader, 1):
                 val_data, val_target = val_batch[0].to(settings.device), val_batch[1].to(settings.device)
                 val_loss = calculateLoss(settings, val_data, val_target)
                 epoch_val_loss += val_loss.item()
                 bar.next()
-        settings.model.train()  # set model back to train mode
+        settings.model.train()
         print(f"===> Epoch {epoch+1}/{settings.epochs_number} Complete: Avg. Loss: {epoch_loss / len(settings.training_data_loader):.12f} Avg. Val. Loss: {epoch_val_loss / len(settings.validation_data_loader)}")
-
+        bar.finish()
         test(settings)
 
-        bar.finish()
-
-        if settings.pruning and (epoch + 1) % 100 == 0:  # Prune every 100 epochs
+        if settings.pruning and (epoch + 1) % 100 == 0:
             prune_model(settings.model, settings.prune_amount)
-        # Checkpoint
+
         if (epoch+1) % settings.checkpoint_frequency == 0:
             checkpoint(settings, settings.model, epoch+1)
             export_model(settings, settings.model, epoch+1)

@@ -4,7 +4,6 @@ from torch.nn import init
 
 
 def ICNR(tensor, initializer, upscale_factor=2, *args, **kwargs):
-    "tensor: the 2-dimensional Tensor or more"
     upscale_factor_squared = upscale_factor * upscale_factor
     assert tensor.shape[0] % upscale_factor_squared == 0, \
         ("The size of the first dimension: "
@@ -26,6 +25,7 @@ class ESPCN(nn.Module):
         self.conv4 = nn.Conv2d(32, num_channels * (upscale_factor**2), (3, 3), padding=(1, 1), padding_mode='reflect')
         self.pixel_shuffle = nn.PixelShuffle(upscale_factor)
         self.smoothing = nn.Conv2d(num_channels, num_channels, (5, 5), padding=(2, 2), padding_mode='reflect')
+        self.sharpening = nn.Conv2d(num_channels, num_channels, (3, 3), padding=(1, 1), bias = False)
 
         self._initialize_weights(upscale_factor)
 
@@ -36,6 +36,7 @@ class ESPCN(nn.Module):
         x = self.conv4(x)
         x = self.pixel_shuffle(x)
         x = self.smoothing(x)
+        x = self.sharpening(x)
         return x
 
     def _initialize_weights(self, upscale_factor):
@@ -43,6 +44,12 @@ class ESPCN(nn.Module):
         init.orthogonal_(self.conv2.weight, init.calculate_gain('relu'))
         init.orthogonal_(self.conv3.weight, init.calculate_gain('relu'))
         weight = ICNR(self.conv4.weight, initializer = nn.init.kaiming_normal_, upscale_factor = upscale_factor)
-        self.conv4.weight.data.copy_(weight)  # initialize conv.weight
+        self.conv4.weight.data.copy_(weight)
         nn.init.constant_(self.smoothing.weight, 1.0 / (5 * 5))
         nn.init.constant_(self.smoothing.bias, 0.0)
+        kernel = torch.tensor([[-0.25, -0.25, -0.25],
+                               [-0.25, 3., -0.25],
+                               [-0.25, -0.25, -0.25]])
+        kernel = kernel.view(1,1,3,3).repeat(1, 1, 1, 1)
+        with torch.no_grad():
+            self.sharpening.weight = nn.Parameter(kernel)

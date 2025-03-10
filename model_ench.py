@@ -5,7 +5,6 @@ from torchvision import models
 from model import ESPCN
 
 
-# Define the Classifier Network
 class Classifier(nn.Module):
     def __init__(self, num_classes):
         super(Classifier, self).__init__()
@@ -29,7 +28,6 @@ class Classifier(nn.Module):
         return self.base_model(x).argmax(dim = 1)
 
 
-# Define the Object-Aware Super-Resolution Model
 class ObjectAwareESPCN(nn.Module):
     def __init__(self, num_classes, upscale_factor, num_channels = 1):
         super(ObjectAwareESPCN, self).__init__()
