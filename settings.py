@@ -2,6 +2,7 @@ import progress.bar
 import torch
 import yaml
 from torch import nn, optim
+import numpy
 from torch.utils.data import DataLoader
 
 try:
@@ -97,6 +98,9 @@ class Settings(metaclass = Singleton):
         self._device = torch.device("cuda" if self._cuda and torch.cuda.is_available() else "cpu")
         bar.next()
         torch.manual_seed(self._seed)
+        torch.cuda.manual_seed(self._seed)
+        torch.backends.cudnn.benchmark = True
+        numpy.random.seed(self._seed)
         bar.next()
         self._model = espcn(self._num_classes, self._upscale_factor).to(self._device)
         bar.next()

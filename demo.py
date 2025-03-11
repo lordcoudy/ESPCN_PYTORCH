@@ -25,8 +25,7 @@ def run(settings):
             model = model.cuda()
             input = input.cuda()
         model.eval()
-        with torch.no_grad():
-            out = model(input)
+        out = model(input)
         out = out.cpu().squeeze(0).clamp(0, 1)
         out_image_y = ToPILImage()(out)
 
