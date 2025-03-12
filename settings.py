@@ -4,6 +4,7 @@ import yaml
 from torch import nn, optim
 import numpy
 from torch.utils.data import DataLoader
+from os.path import exists
 
 try:
     from yaml import CLoader as Loader
@@ -29,7 +30,7 @@ def instance():
 
 class Settings(metaclass = Singleton):
     def __init__(self):
-        bar = progress.bar.IncrementalBar('Initializing ', max = 39)
+        bar = progress.bar.IncrementalBar('Initializing ', max = 44)
         bar.start()
 
         stream = open("settings.yaml", 'r')
@@ -80,7 +81,17 @@ class Settings(metaclass = Singleton):
         self._tuning = self.dictionary['tuning']
         bar.next()
         self._optimized = self.dictionary['optimized']
-
+        bar.next()
+        self._preload = self.dictionary['preload']
+        bar.next()
+        self._preload_path = self.dictionary['preload_path']
+        bar.next()
+        self._psnr_delta = self.dictionary['psnr_delta']
+        bar.next()
+        self._stuck_level = self.dictionary['stuck_level']
+        bar.next()
+        self._target_min_psnr = self.dictionary['target_min_psnr']
+        bar.next()
         train_set = get_training_set(self._upscale_factor)
         bar.next()
         test_set = get_test_set(self._upscale_factor)
@@ -103,6 +114,8 @@ class Settings(metaclass = Singleton):
         numpy.random.seed(self._seed)
         bar.next()
         self._model = espcn(self._num_classes, self._upscale_factor).to(self._device)
+        if (self._preload and exists(self._preload_path)):
+            self._model = torch.load(self._preload_path, weights_only = False)
         bar.next()
         self._criterion = nn.MSELoss().to(self._device)
         bar.next()
@@ -294,6 +307,26 @@ class Settings(metaclass = Singleton):
     @property
     def prune_amount(self):
         return self._prune_amount
+
+    @property
+    def preload(self):
+        return self._preload
+
+    @property
+    def preload_path(self):
+        return self._preload_path
+
+    @property
+    def psnr_delta(self):
+        return self._psnr_delta
+
+    @property
+    def stuck_level(self):
+        return self._stuck_level
+
+    @property
+    def target_min_psnr(self):
+        return self._target_min_psnr
 
     @property
     def name(self):

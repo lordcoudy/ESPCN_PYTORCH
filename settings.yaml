@@ -3,7 +3,7 @@ input_path: "./dataset/BSDS300/images/test/3096.jpg"
 output_path: "./results/"
 model_path: "./models/"
 upscale_factor: 2 # 2, 3, 4, 8
-mode: "train"  # "train" or "demo"
+mode: "train" # "train" or "demo"
 # Epoch settings
 epochs_number: 1000
 epoch: 1000
@@ -15,15 +15,20 @@ learning_rate: 0.0001
 momentum: 0.9
 weight_decay: 0.0001
 threads: 8
+psnr_delta: 0.001
+stuck_level: 3
+target_min_psnr: 25
 seed: 123
 num_classes: 4
 # Optimizations
 cuda: true
-tuning: false
+tuning: true
 mixed_precision: false
 optimized: false
 scheduler: false
 pruning: false
+preload: true
+preload_path: "./results/2x_epoch_1000_optimized(False)_cuda(True)_tuning(True)_pruning(False)_mp(False)_scheduler(False)_ep[1000].pth"
 # Miscellaneous
 trials: 250
 show_progress_bar: true

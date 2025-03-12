@@ -24,11 +24,13 @@ def test(settings):
     print(f"===> Avg. PSNR: {avg_psnr:.12f} dB >===")
     print(f"===> Max. MSE: {max_mse:.12f} >===")
     print(f"===> Min. MSE: {min_mse:.12f} >===")
-    return
+    return avg_psnr
 
 @measure_time
 def train_model(settings):
     settings.model.train()
+    psnrs = [0]
+    slowdown_counter = 0
     for epoch in range(settings.epochs_number):
         epoch_loss = 0
         epoch_val_loss = 0
@@ -56,7 +58,16 @@ def train_model(settings):
         settings.model.train()
         print(f"===> Epoch {epoch+1}/{settings.epochs_number} Complete: Avg. Loss: {epoch_loss / len(settings.training_data_loader):.12f} Avg. Val. Loss: {epoch_val_loss / len(settings.validation_data_loader)}")
         bar.finish()
-        test(settings)
+        t_psnr = test(settings)
+        psnrs.append(t_psnr)
+        delta = psnrs[-1] - psnrs[-2]
+        if (delta < settings.psnr_delta):
+            slowdown_counter += 1
+        else:
+            slowdown_counter = 0
+        if (slowdown_counter == settings.stuck_level and t_psnr < settings.target_min_psnr):
+            print(f"===> Training seems to be stuck. Rerunning. >===")
+            return -2
 
         if settings.pruning and (epoch + 1) % 100 == 0:
             prune_model(settings.model, settings.prune_amount)
@@ -74,4 +85,4 @@ def train(settings):
     os.makedirs('times', exist_ok=True)
     with open(os.path.join('times', 'time_train_model.txt'), 'a+') as f:
         print(f"{settings.name}: ", end="\n", file=f)
-    train_model(settings)
+    return train_model(settings)
