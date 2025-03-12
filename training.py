@@ -60,7 +60,7 @@ def train_model(settings):
         bar.finish()
         t_psnr = test(settings)
         psnrs.append(t_psnr)
-        delta = psnrs[-1] - psnrs[-2]
+        delta = psnrs[-1] - max(psnrs)
         if (delta < settings.psnr_delta):
             slowdown_counter += 1
         else:
