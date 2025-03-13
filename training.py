@@ -1,7 +1,7 @@
 from math import log10
 
 import progress.bar
-
+from colorama import Fore
 from utils import *
 
 
@@ -66,7 +66,7 @@ def train_model(settings):
         else:
             slowdown_counter = 0
         if (slowdown_counter == settings.stuck_level and t_psnr < settings.target_min_psnr):
-            print(f"===> Training seems to be stuck. Rerunning. >===")
+            print(Fore.RED + f"===> Training seems to be stuck. Rerunning. >===")
             return -2
 
         if settings.pruning and (epoch + 1) % 100 == 0:
