@@ -66,14 +66,14 @@ python main.py
 The settings.yaml file contains various configuration options:
 ```yaml
 ---
-input_path: "./dataset/BSDS300/images/test/3096.jpg"
+input_path: "./input/"
 output_path: "./results/"
-model_path: "./models/"
+model_path: "./opt-models/"
 upscale_factor: 2 # 2, 3, 4, 8
-mode: "train"  # "train" or "demo"
+mode: "train" # "train" or "demo"
 # Epoch settings
-epochs_number: 2500
-epoch: 2500
+epochs_number: 1000
+epoch: 1000
 checkpoint_frequency: 50
 # Training settings (only for mode: "train"). Do not change
 batch_size: 32
@@ -82,19 +82,25 @@ learning_rate: 0.0001
 momentum: 0.9
 weight_decay: 0.0001
 threads: 8
+psnr_delta: 0.0001
+stuck_level: 5
+target_min_psnr: 25
 seed: 123
 num_classes: 4
 # Optimizations
 cuda: true
-tuning: true
+tuning: false
 mixed_precision: false
 optimized: false
-scheduler: true
+separable: false
+scheduler: false
 pruning: false
+preload: false
+preload_path: "./path/to/model.pth"
 # Miscellaneous
-trials: 100
+trials: 250
 show_progress_bar: true
-prune_amount: 0.2
+prune_amount: 0.1
 ```
 ## Model Export
 The model can be exported after training. The exported model will be saved in the specified directory with the naming convention:
