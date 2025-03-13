@@ -14,7 +14,7 @@ def run(settings):
     model_path = f"{settings.name}_ep[{settings.epoch}].pth"
     model_available = exists(model_path)
     if model_available:
-        model = torch.load(model_path, weights_only = False)
+        model = torch.load(model_path, weights_only = False, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
         # Training settings
         input_image = settings.input_path
         image = Image.open(input_image).convert('YCbCr')

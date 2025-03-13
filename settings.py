@@ -30,7 +30,7 @@ def instance():
 
 class Settings(metaclass = Singleton):
     def __init__(self):
-        bar = progress.bar.IncrementalBar('Initializing ', max = 44)
+        bar = progress.bar.IncrementalBar('Initializing ', max = 45)
         bar.start()
 
         stream = open("settings.yaml", 'r')
@@ -82,6 +82,8 @@ class Settings(metaclass = Singleton):
         bar.next()
         self._optimized = self.dictionary['optimized']
         bar.next()
+        self._separable = self.dictionary['separable']
+        bar.next()
         self._preload = self.dictionary['preload']
         bar.next()
         self._preload_path = self.dictionary['preload_path']
@@ -101,6 +103,8 @@ class Settings(metaclass = Singleton):
         if self._optimized:
             from model_ench import ObjectAwareESPCN as espcn
             self._pruning = False
+        elif self._separable:
+            from model_sep import ESPCN_Sep as espcn
         else:
             from model import ESPCN as espcn
         bar.next()

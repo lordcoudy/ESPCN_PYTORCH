@@ -25,6 +25,7 @@ cuda: true
 tuning: true
 mixed_precision: false
 optimized: false
+separable: true
 scheduler: false
 pruning: false
 preload: true

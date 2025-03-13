@@ -61,18 +61,18 @@ def train_model(settings):
         t_psnr = test(settings)
         psnrs.append(t_psnr)
         delta = psnrs[-1] - max(psnrs)
-        if (delta < settings.psnr_delta):
+        if delta < settings.psnr_delta:
             slowdown_counter += 1
         else:
             slowdown_counter = 0
-        if (slowdown_counter == settings.stuck_level and t_psnr < settings.target_min_psnr):
+        if slowdown_counter == settings.stuck_level and t_psnr < settings.target_min_psnr:
             print(Fore.RED + f"===> Training seems to be stuck. Rerunning. >===")
             return -2
 
         if settings.pruning and (epoch + 1) % 100 == 0:
             prune_model(settings.model, settings.prune_amount)
 
-        if (epoch+1) % settings.checkpoint_frequency == 0:
+        if t_psnr == max(psnrs) or epoch+1 == settings.checkpoint_frequency:
             checkpoint(settings, settings.model, epoch+1)
             export_model(settings, settings.model, epoch+1)
 
