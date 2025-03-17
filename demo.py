@@ -11,7 +11,7 @@ from torchvision.transforms.v2 import ToPILImage
 
 def run(settings):
     # Load model from file
-    model_path = f"{settings.name}_ep[{settings.epoch}].pth"
+    model_path = f"{settings.name}_ckp{epoch}.pth"
     model_available = exists(model_path)
     if model_available:
         model = torch.load(model_path, weights_only = False, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
