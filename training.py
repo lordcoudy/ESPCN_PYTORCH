@@ -77,6 +77,10 @@ def train_model(settings):
         if t_psnr == max(psnrs) or epoch+1 == settings.checkpoint_frequency:
             checkpoint(settings, settings.model, epoch+1)
             export_model(settings, settings.model, epoch+1)
+            os.makedirs('psnrs', exist_ok=True)
+            with open(os.path.join('psnrs', 'max_psnrs.txt'), 'a+') as f:
+                print(f"Epoch {epoch+1}: {t_psnr:.6f} dB", end="\n", file=f)
+    get_params(settings.model)
 
 
 def train(settings):

@@ -338,7 +338,27 @@ class Settings(metaclass = Singleton):
 
     @property
     def name(self):
-        return self._model_path + f"{self._upscale_factor}x_epoch_{self._n_epochs}_optimized({self._optimized})_cuda({self._cuda})_tuning({self._tuning})_pruning({self._pruning})_mp({self._mp})_scheduler({self._scheduler_enabled})"
+        name = self._model_path + f"{self._upscale_factor}x_epoch[{self._epoch}/{self._n_epochs}]"
+        if self._optimized:
+            name += "_optimized"
+        if self._cuda:
+            name += "_cuda"
+        if self._tuning:
+            name += "_tuning"
+        if self._pruning:
+            name += f"_pruning({self._prune_amount})"
+        if self._mp:
+            name += "_mixed_precision"
+        if self._scheduler_enabled:
+            name += "_with_scheduler"
+        if self._separable:
+            name += "_separable"
+        if self._optimizer_type:
+            name += f"_optimizer({self._optimizer_type})"
+        if self._preload:
+            name += "_preloaded"
+        name += f"seed({self._seed})__batch_size({self._batch_size})_lr({self._lr})_momentum({self._momentum})_weight_decay({self._weight_decay})_num_classes({self._num_classes})"
+        return name
 
     def create_model(self):
         if self.optimized:
