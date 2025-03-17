@@ -1,11 +1,12 @@
 # ESPCN_PYTORCH
 
-Simple implementation of ESPCN (Efficient Sub-Pixel Convolutional Neural Network) in PyTorch.
+This project is a modified implementation of the ESPCN (Efficient Sub-Pixel Convolutional Neural Network) [
+https://doi.org/10.48550/arXiv.1609.05158] in PyTorch.
 
 ## Overview
 This project implements the ESPCN model for image super-resolution using PyTorch.\
 The model is designed to upscale low-resolution images to higher resolutions efficiently.\
-For training it uses the BSD300 dataset, which contains 300 high-resolution images.
+For training it uses the BSD300 and BSDS500 datasets.
 
 ## Requirements
 Described in `requirements.txt`:
