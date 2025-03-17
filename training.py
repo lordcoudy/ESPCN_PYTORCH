@@ -2,6 +2,8 @@ from math import log10
 
 import progress.bar
 from colorama import Fore
+from torch import optim
+
 from utils import *
 
 
@@ -14,7 +16,7 @@ def test(settings):
     with torch.no_grad():
         for batch in settings.testing_data_loader:
             input_tensor, target_tensor = batch[0].to(settings.device), batch[1].to(settings.device)
-            mse = calculateLoss(settings, input_tensor, target_tensor)
+            mse = calculateLoss(settings, input_tensor, target_tensor, settings.model)
             max_mse = max(max_mse, mse.item())
             min_mse = min(min_mse, mse.item())
             psnr = 10 * log10(1 / mse.item())
@@ -40,19 +42,19 @@ def train_model(settings):
             data, target = batch[0].to(settings.device), batch[1].to(settings.device)
             bar.next()
             settings.optimizer.zero_grad()
-            loss = calculateLoss(settings, data, target)
+            loss = calculateLoss(settings, data, target, settings.model)
             epoch_loss += loss.item()
-            backPropagate(settings, loss)
+            backPropagate(settings, loss, settings.optimizer)
             print(f"===> Epoch[{epoch+1}]({iteration}/{len(settings.training_data_loader)}): Loss: {loss.item():.6f}")
 
             if settings.scheduler_enabled:
-                settings.scheduler.step(epoch_val_loss)
+                settings.scheduler.step(epoch_val_loss if settings.scheduler == optim.lr_scheduler.ReduceLROnPlateau else None)
 
         settings.model.eval()
         with torch.no_grad():
             for val_iteration, val_batch in enumerate(settings.validation_data_loader, 1):
                 val_data, val_target = val_batch[0].to(settings.device), val_batch[1].to(settings.device)
-                val_loss = calculateLoss(settings, val_data, val_target)
+                val_loss = calculateLoss(settings, val_data, val_target, settings.model)
                 epoch_val_loss += val_loss.item()
                 bar.next()
         settings.model.train()

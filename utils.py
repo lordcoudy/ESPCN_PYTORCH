@@ -20,21 +20,21 @@ def measure_time(func):
 
     return wrap
 
-def calculateLoss(settings, data, target):
+def calculateLoss(settings, data, target, model):
     with torch.amp.autocast(device_type = "cuda" if settings.cuda else "cpu", enabled =settings.mixed_precision):
-        output = settings.model(data)
+        output = model(data)
         loss = settings.criterion(output, target)
     return loss
 
-def backPropagate(settings, loss):
+def backPropagate(settings, loss, optimizer):
     if settings.scaler:
         settings.scaler.scale(loss).backward()
-        settings.scaler.step(settings.optimizer)
+        settings.scaler.step(optimizer)
         settings.scaler.update()
     else:
         loss.backward()
-        settings.optimizer.step()
-    settings.optimizer.zero_grad()
+        optimizer.step()
+    optimizer.zero_grad()
 
 @measure_time
 def prune_model(model, amount = 0.2):

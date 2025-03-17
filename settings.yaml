@@ -23,7 +23,8 @@ num_classes: 4
 # Optimizations
 cuda: true
 tuning: true
-mixed_precision: false
+optimizer: "adam" # "adam", "sgd"
+mixed_precision: true
 optimized: false
 separable: true
 scheduler: false

@@ -1,10 +1,11 @@
+from os.path import exists
+
+import numpy
 import progress.bar
 import torch
 import yaml
 from torch import nn, optim
-import numpy
 from torch.utils.data import DataLoader
-from os.path import exists
 
 try:
     from yaml import CLoader as Loader
@@ -30,7 +31,7 @@ def instance():
 
 class Settings(metaclass = Singleton):
     def __init__(self):
-        bar = progress.bar.IncrementalBar('Initializing ', max = 45)
+        bar = progress.bar.IncrementalBar('Initializing ', max = 46)
         bar.start()
 
         stream = open("settings.yaml", 'r')
@@ -80,6 +81,8 @@ class Settings(metaclass = Singleton):
         bar.next()
         self._tuning = self.dictionary['tuning']
         bar.next()
+        self._optimizer_type = self.dictionary['optimizer']
+        bar.next()
         self._optimized = self.dictionary['optimized']
         bar.next()
         self._separable = self.dictionary['separable']
@@ -119,12 +122,13 @@ class Settings(metaclass = Singleton):
         bar.next()
         self._model = espcn(self._num_classes, self._upscale_factor).to(self._device)
         if (self._preload and exists(self._preload_path)):
-            self._model = torch.load(self._preload_path, weights_only = False)
+            self._model = torch.load(self._preload_path, weights_only = False, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
         bar.next()
         self._criterion = nn.MSELoss().to(self._device)
         bar.next()
-        # self._optimizer = optim.SGD(self._model.parameters(), lr = self._lr, momentum = self._momentum, weight_decay=self._weight_decay)
         self._optimizer = optim.Adam(self._model.parameters(), lr = self._lr, weight_decay=self._weight_decay)
+        if self._optimizer_type == 'SGD':
+            self._optimizer = optim.SGD(self._model.parameters(), lr = self._lr, momentum = self._momentum, weight_decay=self._weight_decay)
         bar.next()
         device_type = 'cpu'
         if self._cuda:
@@ -342,6 +346,6 @@ class Settings(metaclass = Singleton):
         else:
             from model import ESPCN as espcn
         model = espcn(upscale_factor=self.upscale_factor, num_classes=self.num_classes).to(self.device)
-        if (self.preload and exists(self.preload_path)):
-            model = torch.load(self.preload_path, weights_only = False)
+        if self.preload and exists(self.preload_path):
+            model = torch.load(self.preload_path, weights_only = False, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
         return model
