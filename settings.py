@@ -158,6 +158,7 @@ class Settings(metaclass = Singleton):
         bar.next()
         self._prune_amount = self.dictionary['prune_amount']
         bar.next()
+        self._profiler = self.dictionary['show_profiler']
         bar.finish()
 
     @property
@@ -338,7 +339,7 @@ class Settings(metaclass = Singleton):
 
     @property
     def name(self):
-        name = self._model_path + f"{self._upscale_factor}x_epoch[{self._epoch}/{self._n_epochs}]"
+        name = self._model_path + f"{self._upscale_factor}x_epochs({self._n_epochs})"
         if self._optimized:
             name += "_optimized"
         if self._cuda:
@@ -357,7 +358,7 @@ class Settings(metaclass = Singleton):
             name += f"_optimizer({self._optimizer_type})"
         if self._preload:
             name += "_preloaded"
-        name += f"seed({self._seed})__batch_size({self._batch_size})_lr({self._lr})_momentum({self._momentum})_weight_decay({self._weight_decay})_num_classes({self._num_classes})"
+        name += f"_seed({self._seed})_batch_size({self._batch_size})_lr({self._lr})_momentum({self._momentum})_weight_decay({self._weight_decay})_num_classes({self._num_classes})"
         return name
 
     def create_model(self):
@@ -369,3 +370,7 @@ class Settings(metaclass = Singleton):
         if self.preload and exists(self.preload_path):
             model = torch.load(self.preload_path, weights_only = False, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
         return model
+
+    @property
+    def profiler(self):
+        return self._profiler

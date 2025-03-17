@@ -3,6 +3,9 @@ from math import log10
 import progress.bar
 from colorama import Fore
 from torch import optim
+import torch.profiler
+from torch.profiler import ProfilerActivity
+from contextlib import nullcontext
 
 from utils import *
 
@@ -41,10 +44,17 @@ def train_model(settings):
         for iteration, batch in enumerate(settings.training_data_loader, 1):
             data, target = batch[0].to(settings.device), batch[1].to(settings.device)
             bar.next()
-            settings.optimizer.zero_grad()
-            loss = calculateLoss(settings, data, target, settings.model)
-            epoch_loss += loss.item()
-            backPropagate(settings, loss, settings.optimizer)
+            prof = torch.profiler.profile(
+                    activities = [ProfilerActivity.CPU, ProfilerActivity.CUDA],
+                    record_shapes = True,
+                    profile_memory = True,
+                    with_modules = True)
+            with prof if settings.profiler else nullcontext():
+                settings.optimizer.zero_grad()
+                loss = calculateLoss(settings, data, target, settings.model)
+                epoch_loss += loss.item()
+                backPropagate(settings, loss, settings.optimizer)
+            if settings.profiler: print(prof.key_averages().table(sort_by = "self_cuda_memory_usage"))
             print(f"===> Epoch[{epoch+1}]({iteration}/{len(settings.training_data_loader)}): Loss: {loss.item():.6f}")
 
             if settings.scheduler_enabled:

@@ -53,7 +53,7 @@ def prune_model(model, amount = 0.2):
 
 @measure_time
 def checkpoint(settings, model, epoch):
-    model_path = f"ckp{epoch}_{settings.name}.pth"
+    model_path = f"{settings.name}_ckp{epoch}.pth"
     torch.save(model, model_path)
     print("===> Checkpoint saved to {} >===".format(model_path))
 
@@ -65,7 +65,7 @@ def export_model(settings, model, epoch):
     img_to_tensor = ToTensor()
     input_tensor = img_to_tensor(y).unsqueeze(0).to(settings.device)
     traced_script = torch.jit.trace(model, input_tensor)
-    traced_model_path = f"TRACED_ckp{epoch}_{settings.name}.pth"
+    traced_model_path = f"{settings.name}_TRACED_ckp{epoch}.pth"
     traced_script.save(traced_model_path)
     print("===> Traced model saved to {} >===".format(traced_model_path))
 

@@ -34,4 +34,5 @@ preload_path: "./results/2x_epoch_1000_optimized(False)_cuda(True)_tuning(True)_
 # Miscellaneous
 trials: 250
 show_progress_bar: true
-prune_amount: 0.2
+prune_amount: 0.1
+show_profiler: false
