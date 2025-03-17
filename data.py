@@ -42,12 +42,10 @@ class DatasetFromFolder(data.Dataset):
 
 
 def download_bsd300(dest="dataset"):
-    # output_image_dir = join(dest, "BSDS300/images")
     output_image_dir = join(dest, "BSDS500/images")
 
     if not exists(output_image_dir) or len(os.listdir(output_image_dir)) == 0:
         os.makedirs(dest, exist_ok=True)
-        # url = "http://www2.eecs.berkeley.edu/Research/Projects/CS/vision/bsds/BSDS300-images.tgz"
         # url = "https://web.archive.org/web/20160306133802/http://www.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/BSR/BSR_bsds500.tgz"
         url = "https://drive.google.com/file/d/1fTBtqwfUVhelz-kE1PkJ0cyeje7dB_zV/view?usp=sharing"
         file_path = join(dest, "BSDS500.tar.gz")

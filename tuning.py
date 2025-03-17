@@ -23,8 +23,8 @@ def train_model(settings, training_data_loader, optimizer):
 
 @measure_time
 def objective(trial):
-    lr = trial.suggest_float('lr', 1e-9, 1e-4, log = True)
-    batch_size = trial.suggest_categorical('batch_size', [8, 16, 32, 64, 128])
+    lr = trial.suggest_float('lr', 1e-7, 1e-4, log = True)
+    batch_size = trial.suggest_categorical('batch_size', [16, 32, 64, 128])
     momentum = trial.suggest_float('momentum', 0.9, 0.99)
     weight_decay = trial.suggest_float('weight_decay', 1e-5, 1e-3)
     settings = Settings()
