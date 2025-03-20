@@ -10,9 +10,7 @@ class ESPCN_Sep(nn.Module):
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(p=0.5)
 
-        # First depthwise separable convolution
-        self.conv1_depthwise = nn.Conv2d(num_channels, num_channels, (5, 5), padding=(2, 2), padding_mode='reflect', groups=num_channels)
-        self.conv1_pointwise = nn.Conv2d(num_channels, 64, (1, 1))
+        self.conv1 = nn.Conv2d(num_channels, 64, (5, 5), padding = (2, 2), padding_mode = 'reflect')
 
         # Second depthwise separable convolution
         self.conv2_depthwise = nn.Conv2d(64, 64, (3, 3), padding=(1, 1), padding_mode='reflect', groups=64)
@@ -27,17 +25,12 @@ class ESPCN_Sep(nn.Module):
 
         self.pixel_shuffle = nn.PixelShuffle(upscale_factor)
 
-        # Smoothing layer as depthwise separable convolution
-        self.smoothing_depthwise = nn.Conv2d(num_channels, num_channels, (5, 5), padding=(2, 2), padding_mode='reflect', groups=num_channels)
-        self.smoothing_pointwise = nn.Conv2d(num_channels, num_channels, (1, 1))
+        self.smoothing = nn.Conv2d(num_channels, num_channels, (5, 5), padding = (2, 2), padding_mode = 'reflect')
 
         self._initialize_weights(upscale_factor)
 
     def forward(self, x):
-        # First depthwise separable convolution
-        x = self.conv1_depthwise(x)
-        x = self.conv1_pointwise(x)
-        x = self.relu(x)
+        x = self.relu(self.conv1(x))
         x = self.dropout(x)
 
         # Second depthwise separable convolution
@@ -57,14 +50,11 @@ class ESPCN_Sep(nn.Module):
         x = self.pixel_shuffle(x)
 
         # Smoothing layer
-        x = self.smoothing_depthwise(x)
-        x = self.smoothing_pointwise(x)
+        x = self.smoothing(x)
         return x
 
     def _initialize_weights(self, upscale_factor):
-        # Initialize depthwise convolution weights
-        init.orthogonal_(self.conv1_depthwise.weight, init.calculate_gain('relu'))
-        init.orthogonal_(self.conv1_pointwise.weight, init.calculate_gain('relu'))
+        init.orthogonal_(self.conv1.weight, init.calculate_gain('relu'))
 
         init.orthogonal_(self.conv2_depthwise.weight, init.calculate_gain('relu'))
         init.orthogonal_(self.conv2_pointwise.weight, init.calculate_gain('relu'))
@@ -77,6 +67,5 @@ class ESPCN_Sep(nn.Module):
         self.conv4.weight.data.copy_(weight)
 
         # Initialize smoothing layer
-        init.orthogonal_(self.smoothing_depthwise.weight, 1.0 / (5 * 5))
-        init.orthogonal_(self.smoothing_pointwise.weight, 1.0)
-        init.constant_(self.smoothing_pointwise.bias, 0.0)
+        init.orthogonal_(self.smoothing.weight, 1.0 / (5 * 5))
+        init.constant_(self.smoothing.bias, 0.0)

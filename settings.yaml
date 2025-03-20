@@ -3,7 +3,7 @@ input_path: "./dataset/BSDS300/images/test/3096.jpg"
 output_path: "./results/"
 model_path: "./models/"
 upscale_factor: 2 # 2, 3, 4, 8
-mode: "train" # "train" or "demo"
+mode: "train"     # "train", "demo"
 # Epoch settings
 epochs_number: 1000
 epoch: 1000
@@ -15,24 +15,25 @@ learning_rate: 0.0001
 momentum: 0.9
 weight_decay: 0.0001
 threads: 8
-psnr_delta: 0.001
-stuck_level: 3
-target_min_psnr: 25
-seed: 123
-num_classes: 4
+optimizer: "adam" # "adam", "sgd"
+# Recalculate conditions
+psnr_delta: 0
+stuck_level: 30
+target_min_psnr: 26.5
 # Optimizations
 cuda: true
 tuning: true
-optimizer: "adam" # "adam", "sgd"
+trials: 300       # Tuning trials
 mixed_precision: true
-optimized: false
-separable: true
-scheduler: false
-pruning: false
-preload: true
-preload_path: "./results/2x_epoch_1000_optimized(False)_cuda(True)_tuning(True)_pruning(False)_mp(False)_scheduler(False)_ep[1000].pth"
-# Miscellaneous
-trials: 250
-show_progress_bar: true
+optimized: false  # Enable Classifier
+num_classes: 4    # Number of classes for Classifier
+separable: true   # Enable separable Conv2d
+scheduler: true   # Enable learning rate scheduler
+pruning: false    # Enable pruning
 prune_amount: 0.1
+preload: false    # Preload model
+preload_path: "./results/2x_epoch_500_optimized(False)_cuda(True)_tuning(False)_pruning(False)_mp(True)_scheduler(False)_ep[500].pth"
+# Miscellaneous
+seed: 123
+show_progress_bar: true
 show_profiler: false

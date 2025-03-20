@@ -341,7 +341,7 @@ class Settings(metaclass = Singleton):
     def name(self):
         name = self._model_path + f"{self._upscale_factor}x_epochs({self._n_epochs})"
         if self._optimized:
-            name += "_optimized"
+            name += f"_optimized({self._num_classes})"
         if self._cuda:
             name += "_cuda"
         if self._tuning:
@@ -358,7 +358,7 @@ class Settings(metaclass = Singleton):
             name += f"_optimizer({self._optimizer_type})"
         if self._preload:
             name += "_preloaded"
-        name += f"_seed({self._seed})_batch_size({self._batch_size})_lr({self._lr})_momentum({self._momentum})_weight_decay({self._weight_decay})_num_classes({self._num_classes})"
+        name += f"_seed({self._seed})_batch_size({self._batch_size})_lr({self._lr})_momentum({self._momentum})_weight_decay({self._weight_decay})"
         return name
 
     def create_model(self):

@@ -78,7 +78,7 @@ def train_model(settings):
         else:
             slowdown_counter = 0
         if slowdown_counter == settings.stuck_level and t_psnr < settings.target_min_psnr:
-            print(Fore.RED + f"===> Training seems to be stuck. Rerunning. >===")
+            print(Fore.RED + f"\n\n===> Training seems to be stuck. Rerunning. >===\n\n")
             return -2
 
         if settings.pruning and (epoch + 1) % 100 == 0:
