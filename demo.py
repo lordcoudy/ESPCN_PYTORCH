@@ -8,6 +8,9 @@ from PIL.Image import Resampling
 from torchvision.transforms import ToTensor
 from torchvision.transforms.v2 import ToPILImage
 
+from custom_logger import get_logger
+
+logger = get_logger('demo')
 
 def run(settings):
     # Load model from file
@@ -36,4 +39,4 @@ def run(settings):
         out_image.save(f"{settings.name}.png")
         out_image.show(f"{settings.name}.png")
     else:
-        print(f'{model_path} does not exist')
+        logger.error(f'{model_path} does not exist')

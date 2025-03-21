@@ -50,12 +50,17 @@ def download_bsd300(dest="dataset"):
         url = "https://drive.google.com/file/d/1fTBtqwfUVhelz-kE1PkJ0cyeje7dB_zV/view?usp=sharing"
         file_path = join(dest, "BSDS500.tar.gz")
 
-        print("Downloading dataset:", url)
+        from custom_logger import get_logger
+        logger = get_logger('data')
+        logger.info("Downloading dataset:", url)
         urllib.request.urlretrieve(url, file_path)
-
-        print("Extracting dataset:", file_path)
+        if not tarfile.is_tarfile(file_path):
+            logger.error("Tarfile doesn't appear to be a tar file")
+        logger.info("Extracting dataset:", file_path)
         with tarfile.open(file_path, "r:gz") as tar:
             tar.extractall(path=dest)  # Safer extraction
+            if not exists(output_image_dir):
+                logger.error("Dataset extraction failed")
 
         os.remove(file_path)  # Cleanup
 

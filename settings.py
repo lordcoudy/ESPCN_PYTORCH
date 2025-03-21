@@ -16,27 +16,21 @@ from data import get_test_set, get_training_set, get_validation_set
 
 
 class Singleton(type):
-    _instances = { }
+    _instances = {}
 
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
 
-# Create a singleton instance of the settings
-def instance():
-    settings = Settings()
-    return settings
-
-
-class Settings(metaclass = Singleton):
+class Settings(metaclass=Singleton):
     def __init__(self):
-        bar = progress.bar.IncrementalBar('Initializing ', max = 46)
+        bar = progress.bar.IncrementalBar('Initializing ', max=47)
         bar.start()
 
         stream = open("settings.yaml", 'r')
         bar.next()
-        self.dictionary = yaml.load(stream, Loader = Loader)
+        self.dictionary = yaml.load(stream, Loader=Loader)
         bar.next()
 
         self._upscale_factor = self.dictionary['upscale_factor']
@@ -121,28 +115,28 @@ class Settings(metaclass = Singleton):
         numpy.random.seed(self._seed)
         bar.next()
         self._model = espcn(self._num_classes, self._upscale_factor).to(self._device)
-        if (self._preload and exists(self._preload_path)):
-            self._model = torch.load(self._preload_path, weights_only = False, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+        if self._preload and exists(self._preload_path):
+            self._model = torch.load(self._preload_path, weights_only=False, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
         bar.next()
         self._criterion = nn.MSELoss().to(self._device)
         bar.next()
-        self._optimizer = optim.Adam(self._model.parameters(), lr = self._lr, weight_decay=self._weight_decay)
+        self._optimizer = optim.Adam(self._model.parameters(), lr=self._lr, weight_decay=self._weight_decay)
         if self._optimizer_type == 'SGD':
-            self._optimizer = optim.SGD(self._model.parameters(), lr = self._lr, momentum = self._momentum, weight_decay=self._weight_decay)
+            self._optimizer = optim.SGD(self._model.parameters(), lr=self._lr, momentum=self._momentum, weight_decay=self._weight_decay)
         bar.next()
         device_type = 'cpu'
         if self._cuda:
             device_type = 'cuda'
-        self._scaler = torch.amp.GradScaler(device=device_type, enabled = self._mp)
+        self._scaler = torch.amp.GradScaler(device=device_type, enabled=self._mp)
         bar.next()
 
-        self._training_data_loader = DataLoader(dataset = train_set, num_workers = self._threads,
-                                                batch_size = self._batch_size, shuffle = True)
+        self._training_data_loader = DataLoader(dataset=train_set, num_workers=self._threads,
+                                                batch_size=self._batch_size, shuffle=True)
         bar.next()
-        self._testing_data_loader = DataLoader(dataset = test_set, num_workers = self._threads,
-                                               batch_size = self._test_batch_size, shuffle = False)
+        self._testing_data_loader = DataLoader(dataset=test_set, num_workers=self._threads,
+                                               batch_size=self._test_batch_size, shuffle=False)
         bar.next()
-        self._validation_data_loader = DataLoader(dataset = val_set, num_workers = self._threads,
+        self._validation_data_loader = DataLoader(dataset=val_set, num_workers=self._threads,
                                                   batch_size=self._test_batch_size, shuffle=True)
         bar.next()
         self._scheduler_enabled = self.dictionary['scheduler']
@@ -214,7 +208,7 @@ class Settings(metaclass = Singleton):
         return self._lr
 
     @learning_rate.setter
-    def learning_rate(self, lr : float):
+    def learning_rate(self, lr: float):
         self._lr = lr
 
     @property
@@ -222,7 +216,7 @@ class Settings(metaclass = Singleton):
         return self._momentum
 
     @momentum.setter
-    def momentum(self, momentum : float):
+    def momentum(self, momentum: float):
         self._momentum = momentum
 
     @property
@@ -230,7 +224,7 @@ class Settings(metaclass = Singleton):
         return self._weight_decay
 
     @weight_decay.setter
-    def weight_decay(self, weight_decay : float):
+    def weight_decay(self, weight_decay: float):
         self._weight_decay = weight_decay
 
     @property
@@ -368,9 +362,17 @@ class Settings(metaclass = Singleton):
             from model import ESPCN as espcn
         model = espcn(upscale_factor=self.upscale_factor, num_classes=self.num_classes).to(self.device)
         if self.preload and exists(self.preload_path):
-            model = torch.load(self.preload_path, weights_only = False, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+            model = torch.load(self.preload_path, weights_only=False, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
         return model
 
     @property
     def profiler(self):
         return self._profiler
+
+    @property
+    def optimizer_type(self):
+        return self._optimizer_type
+
+
+def instance():
+    return Settings()

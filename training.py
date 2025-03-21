@@ -2,13 +2,14 @@ from math import log10
 
 import progress.bar
 from colorama import Fore
-from torch import optim
 import torch.profiler
 from torch.profiler import ProfilerActivity
 from contextlib import nullcontext
 
 from utils import *
+from custom_logger import get_logger
 
+logger = get_logger('training')
 
 @measure_time
 def test(settings):
@@ -24,11 +25,11 @@ def test(settings):
             min_mse = min(min_mse, mse.item())
             psnr = 10 * log10(1 / mse.item())
             avg_psnr += psnr
-            print(f"PSNR: {psnr:.6f} dB | MSE: {mse.item():.6f}")
+            logger.debug(f"PSNR: {psnr:.6f} dB | MSE: {mse.item():.6f}")
     avg_psnr /= len(settings.testing_data_loader)
-    print(f"===> Avg. PSNR: {avg_psnr:.12f} dB >===")
-    print(f"===> Max. MSE: {max_mse:.12f} >===")
-    print(f"===> Min. MSE: {min_mse:.12f} >===")
+    logger.info(f"===> Avg. PSNR: {avg_psnr:.12f} dB >===")
+    logger.debug(f"===> Max. MSE: {max_mse:.12f} >===")
+    logger.debug(f"===> Min. MSE: {min_mse:.12f} >===")
     return avg_psnr
 
 @measure_time
@@ -39,7 +40,8 @@ def train_model(settings):
     for epoch in range(settings.epochs_number):
         epoch_loss = 0
         epoch_val_loss = 0
-        bar = progress.bar.IncrementalBar(f'Epoch {epoch + 1}', max=len(settings.training_data_loader) + len(settings.validation_data_loader)) # Update bar max
+        if settings.show_progress_bar:
+            bar = progress.bar.IncrementalBar(f'Epoch {epoch + 1}', max=len(settings.training_data_loader) + len(settings.validation_data_loader)) # Update bar max
         bar.start()
         for iteration, batch in enumerate(settings.training_data_loader, 1):
             data, target = batch[0].to(settings.device), batch[1].to(settings.device)
@@ -54,11 +56,8 @@ def train_model(settings):
                 loss = calculateLoss(settings, data, target, settings.model)
                 epoch_loss += loss.item()
                 backPropagate(settings, loss, settings.optimizer)
-            if settings.profiler: print(prof.key_averages().table(sort_by = "self_cuda_memory_usage"))
-            print(f"===> Epoch[{epoch+1}]({iteration}/{len(settings.training_data_loader)}): Loss: {loss.item():.6f}")
-
-            if settings.scheduler_enabled:
-                settings.scheduler.step(epoch_val_loss if settings.scheduler == optim.lr_scheduler.ReduceLROnPlateau else None)
+            if settings.profiler: logger.debug(prof.key_averages().table(sort_by = "self_cuda_memory_usage"))
+            logger.debug(f"===> Epoch[{epoch+1}]({iteration}/{len(settings.training_data_loader)}): Loss: {loss.item():.6f}")
 
         settings.model.eval()
         with torch.no_grad():
@@ -68,7 +67,7 @@ def train_model(settings):
                 epoch_val_loss += val_loss.item()
                 bar.next()
         settings.model.train()
-        print(f"===> Epoch {epoch+1}/{settings.epochs_number} Complete: Avg. Loss: {epoch_loss / len(settings.training_data_loader):.12f} Avg. Val. Loss: {epoch_val_loss / len(settings.validation_data_loader)}")
+        logger.info(f"===> Epoch {epoch+1}/{settings.epochs_number} Complete: Avg. Loss: {epoch_loss / len(settings.training_data_loader):.12f} Avg. Val. Loss: {epoch_val_loss / len(settings.validation_data_loader)}")
         bar.finish()
         t_psnr = test(settings)
         psnrs.append(t_psnr)
@@ -78,7 +77,7 @@ def train_model(settings):
         else:
             slowdown_counter = 0
         if slowdown_counter == settings.stuck_level and t_psnr < settings.target_min_psnr:
-            print(Fore.RED + f"\n\n===> Training seems to be stuck. Rerunning. >===\n\n")
+            logger.error(Fore.RED + f"===> Training seems to be stuck. Rerunning. >===")
             return -2
 
         if settings.pruning and (epoch + 1) % 100 == 0:
@@ -94,10 +93,10 @@ def train_model(settings):
 
 
 def train(settings):
-    print(f"===> Upscale factor: {settings.upscale_factor} | Epochs: {settings.epochs_number} >===")
-    print(f"===> Batch size: {settings.batch_size} | Learning rate: {settings.learning_rate} >===")
-    print("===> Building model >===")
-    print("Structure of the model: ", settings.model)
+    logger.info(f"===> Upscale factor: {settings.upscale_factor} | Epochs: {settings.epochs_number} >===")
+    logger.debug(f"===> Batch size: {settings.batch_size} | Learning rate: {settings.learning_rate} | Weight decay: {settings.weight_decay} | Optimizer: {settings.optimizer_type} >===")
+    logger.info("===> Building model >===")
+    logger.debug("Structure of the model: ", settings.model)
     os.makedirs('times', exist_ok=True)
     with open(os.path.join('times', 'time_train_model.txt'), 'a+') as f:
         print(f"{settings.name}: ", end="\n", file=f)
