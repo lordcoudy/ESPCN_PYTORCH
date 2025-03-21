@@ -40,11 +40,6 @@ def backPropagate(settings, loss, optimizer):
         loss.backward()
         optimizer.step()
 
-    if settings.scheduler_enabled:
-        settings.scheduler.step(epoch_val_loss if settings.scheduler == optim.lr_scheduler.ReduceLROnPlateau else None)
-
-    optimizer.zero_grad()
-
 @measure_time
 def prune_model(model, amount = 0.2):
     parameters_to_prune = [

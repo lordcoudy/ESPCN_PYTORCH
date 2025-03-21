@@ -27,7 +27,7 @@ def train_model(settings, training_data_loader, model, optimizer):
 
 @measure_time
 def objective(trial, settings):
-    lr = trial.suggest_float('lr', 1e-7, 1e-4, log=True)
+    lr = trial.suggest_float('lr', 1e-7, 1e-3, log=True)
     batch_size = trial.suggest_categorical('batch_size', [16, 32, 64, 128])
     momentum = trial.suggest_float('momentum', 0.9, 0.99)
     weight_decay = trial.suggest_float('weight_decay', 1e-5, 1e-3)
@@ -58,10 +58,10 @@ def tune(settings):
 
     logger.info('Best trial:')
     trial = study.best_trial
-    logger.debug('\tValue: ', trial.value)
-    logger.debug('\tParams: ')
+    logger.debug('Value: ', f"{trial.value}")
+    logger.debug('Params: ')
     for key, value in trial.params.items():
-        logger.debug(f'\t{key}: {value}')
+        logger.debug(f'{key}: {value}')
         if key == 'lr':
             settings.learning_rate = value
         if key == 'batch_size':

@@ -67,6 +67,8 @@ def train_model(settings):
                 epoch_val_loss += val_loss.item()
                 bar.next()
         settings.model.train()
+        if settings.scheduler_enabled:
+            settings.scheduler.step(epoch_val_loss if settings.scheduler == optim.lr_scheduler.ReduceLROnPlateau else None)
         logger.info(f"===> Epoch {epoch+1}/{settings.epochs_number} Complete: Avg. Loss: {epoch_loss / len(settings.training_data_loader):.12f} Avg. Val. Loss: {epoch_val_loss / len(settings.validation_data_loader)}")
         bar.finish()
         t_psnr = test(settings)
@@ -96,7 +98,7 @@ def train(settings):
     logger.info(f"===> Upscale factor: {settings.upscale_factor} | Epochs: {settings.epochs_number} >===")
     logger.debug(f"===> Batch size: {settings.batch_size} | Learning rate: {settings.learning_rate} | Weight decay: {settings.weight_decay} | Optimizer: {settings.optimizer_type} >===")
     logger.info("===> Building model >===")
-    logger.debug("Structure of the model: ", settings.model)
+    # logger.debug("Structure of the model: ", settings.model)
     os.makedirs('times', exist_ok=True)
     with open(os.path.join('times', 'time_train_model.txt'), 'a+') as f:
         print(f"{settings.name}: ", end="\n", file=f)
