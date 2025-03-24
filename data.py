@@ -1,7 +1,6 @@
-import tarfile
 import os
 import random
-import tarfile
+import zipfile
 from os.path import join, exists
 
 import torch.utils.data as data
@@ -41,24 +40,24 @@ class DatasetFromFolder(data.Dataset):
         return len(self.image_items)
 
 
-def download_bsd300(dest="dataset"):
+def download_bsd500(dest="dataset"):
     output_image_dir = join(dest, "BSDS500/images")
-
     if not exists(output_image_dir) or len(os.listdir(output_image_dir)) == 0:
         os.makedirs(dest, exist_ok=True)
-        # url = "https://web.archive.org/web/20160306133802/http://www.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/BSR/BSR_bsds500.tgz"
-        url = "https://drive.google.com/file/d/1fTBtqwfUVhelz-kE1PkJ0cyeje7dB_zV/view?usp=sharing"
-        file_path = join(dest, "BSDS500.tar.gz")
-
+        url = "https://www.kaggle.com/api/v1/datasets/download/balraj98/berkeley-segmentation-dataset-500-bsds500"
+        file_path = join(dest, "berkeley-segmentation-dataset-500-bsds500.zip")
         from custom_logger import get_logger
         logger = get_logger('data')
-        logger.info("Downloading dataset:", url)
+        logger.info(f"Downloading dataset: {url}")
         urllib.request.urlretrieve(url, file_path)
-        if not tarfile.is_tarfile(file_path):
-            logger.error("Tarfile doesn't appear to be a tar file")
-        logger.info("Extracting dataset:", file_path)
-        with tarfile.open(file_path, "r:gz") as tar:
-            tar.extractall(path=dest)  # Safer extraction
+        if not zipfile.is_zipfile(file_path):
+            logger.error("Zipfile doesn't appear to be a zip file")
+        logger.info(f"Extracting dataset: {file_path}")
+        dir_dest = join(dest, "BSDS500")
+        if not exists(dir_dest):
+            os.makedirs(dir_dest, exist_ok=True)
+        with zipfile.ZipFile(file_path, mode='r') as zip_ref:
+            zip_ref.extractall(path=dir_dest)
             if not exists(output_image_dir):
                 logger.error("Dataset extraction failed")
 
@@ -110,21 +109,21 @@ def transform(img_size, upscale_factor):
 
 
 def get_training_set(upscale_factor, img_size=256):
-    root_dir = download_bsd300()
+    root_dir = download_bsd500()
     train_dir = join(root_dir, "train")
 
     return DatasetFromFolder(train_dir,
                              transform=transform(img_size, upscale_factor))
 
 def get_validation_set(upscale_factor, img_size=256):
-    root_dir = download_bsd300()
+    root_dir = download_bsd500()
     val_dir = join(root_dir, "val")
 
     return DatasetFromFolder(val_dir,
                              transform=transform(img_size, upscale_factor))
 
 def get_test_set(upscale_factor, img_size=256):
-    root_dir = download_bsd300()
+    root_dir = download_bsd500()
     test_dir = join(root_dir, "test")
 
     return DatasetFromFolder(test_dir,

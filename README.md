@@ -66,11 +66,11 @@ python main.py
 The settings.yaml file contains various configuration options:
 ```yaml
 ---
-input_path: "./input/"
+input_path: "./dataset/BSDS300/images/test/3096.jpg"
 output_path: "./results/"
-model_path: "./opt-models/"
+model_path: "./models/"
 upscale_factor: 2 # 2, 3, 4, 8
-mode: "train" # "train" or "demo"
+mode: "train"     # "train", "demo"
 # Epoch settings
 epochs_number: 1000
 epoch: 1000
@@ -82,25 +82,28 @@ learning_rate: 0.0001
 momentum: 0.9
 weight_decay: 0.0001
 threads: 8
-psnr_delta: 0.0001
-stuck_level: 5
-target_min_psnr: 25
-seed: 123
-num_classes: 4
+optimizer: "adam" # "adam", "sgd"
+# Recalculate conditions
+psnr_delta: 0
+stuck_level: 30
+target_min_psnr: 26.5
 # Optimizations
 cuda: true
-tuning: false
-mixed_precision: false
-optimized: false
-separable: false
-scheduler: false
-pruning: false
-preload: false
-preload_path: "./path/to/model.pth"
-# Miscellaneous
-trials: 250
-show_progress_bar: true
+tuning: true
+trials: 300       # Tuning trials
+mixed_precision: true
+optimized: false  # Enable Classifier
+num_classes: 4    # Number of classes for Classifier
+separable: true   # Enable separable Conv2d
+scheduler: true   # Enable learning rate scheduler
+pruning: false    # Enable pruning
 prune_amount: 0.1
+preload: false    # Preload model
+preload_path: "./results/2x_epoch_500_optimized(False)_cuda(True)_tuning(False)_pruning(False)_mp(True)_scheduler(False)_ep[500].pth"
+# Miscellaneous
+seed: 123
+show_progress_bar: true
+show_profiler: false
 ```
 ## Model Export
 The model can be exported after training. The exported model will be saved in the specified directory with the naming convention:

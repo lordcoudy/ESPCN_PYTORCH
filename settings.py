@@ -101,7 +101,7 @@ class Settings(metaclass=Singleton):
             from model_ench import ObjectAwareESPCN as espcn
             self._pruning = False
         elif self._separable:
-            from model_sep import ESPCN_Sep as espcn
+            from model_sep import EspcnSep as espcn
         else:
             from model import ESPCN as espcn
         bar.next()
@@ -358,11 +358,13 @@ class Settings(metaclass=Singleton):
     def create_model(self):
         if self.optimized:
             from model_ench import ObjectAwareESPCN as espcn
+        elif self._separable:
+            from model_sep import EspcnSep as espcn
         else:
             from model import ESPCN as espcn
         model = espcn(upscale_factor=self.upscale_factor, num_classes=self.num_classes).to(self.device)
         if self.preload and exists(self.preload_path):
-            model = torch.load(self.preload_path, weights_only=False, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+            model = torch.load(self.preload_path, weights_only=False, map_location=self.device)
         return model
 
     @property

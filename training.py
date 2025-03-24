@@ -1,13 +1,13 @@
+from contextlib import nullcontext
 from math import log10
 
 import progress.bar
-from colorama import Fore
 import torch.profiler
+from colorama import Fore
 from torch.profiler import ProfilerActivity
-from contextlib import nullcontext
 
-from utils import *
 from custom_logger import get_logger
+from utils import *
 
 logger = get_logger('training')
 
@@ -98,7 +98,7 @@ def train(settings):
     logger.info(f"===> Upscale factor: {settings.upscale_factor} | Epochs: {settings.epochs_number} >===")
     logger.debug(f"===> Batch size: {settings.batch_size} | Learning rate: {settings.learning_rate} | Weight decay: {settings.weight_decay} | Optimizer: {settings.optimizer_type} >===")
     logger.info("===> Building model >===")
-    # logger.debug("Structure of the model: ", settings.model)
+    logger.debug(f"Structure of the model: {settings.model}")
     os.makedirs('times', exist_ok=True)
     with open(os.path.join('times', 'time_train_model.txt'), 'a+') as f:
         print(f"{settings.name}: ", end="\n", file=f)

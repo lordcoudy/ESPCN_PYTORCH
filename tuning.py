@@ -6,9 +6,9 @@ import optuna
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
+from custom_logger import get_logger
 from data import get_training_set
 from utils import backPropagate, calculateLoss, measure_time
-from custom_logger import get_logger
 
 logger = get_logger('tuning')
 
@@ -58,7 +58,7 @@ def tune(settings):
 
     logger.info('Best trial:')
     trial = study.best_trial
-    logger.debug('Value: ', f"{trial.value}")
+    logger.debug(f"Value: {trial.value}")
     logger.debug('Params: ')
     for key, value in trial.params.items():
         logger.debug(f'{key}: {value}')

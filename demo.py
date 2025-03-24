@@ -14,19 +14,18 @@ logger = get_logger('demo')
 
 def run(settings):
     # Load model from file
-    model_path = f"{settings.name}_ckp{epoch}.pth"
+    model_path = f"{settings.name}_ckp{settings.epoch}.pth"
     model_available = exists(model_path)
     if model_available:
-        model = torch.load(model_path, weights_only = False, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+        model = torch.load(model_path, weights_only = False, map_location=settings.device)
         # Training settings
         input_image = settings.input_path
         image = Image.open(input_image).convert('YCbCr')
         y, cb, cr = image.split()
         image_to_tensor = ToTensor()
         input = image_to_tensor(y).unsqueeze(0)
-        if torch.cuda.is_available() and settings.cuda:
-            model = model.cuda()
-            input = input.cuda()
+        model = model.to(settings.device)
+        input = input.to(settings.device)
         model.eval()
         out = model(input)
         out = out.cpu().squeeze(0).clamp(0, 1)
@@ -38,5 +37,6 @@ def run(settings):
 
         out_image.save(f"{settings.name}.png")
         out_image.show(f"{settings.name}.png")
+        logger.info(f"Image saved to {settings.name}.png")
     else:
         logger.error(f'{model_path} does not exist')
