@@ -332,6 +332,18 @@ class Settings(metaclass=Singleton):
         return self._target_min_psnr
 
     @property
+    def profiler(self):
+        return self._profiler
+
+    @property
+    def optimizer_type(self):
+        return self._optimizer_type
+
+    @property
+    def separable(self):
+        return self._separable
+
+    @property
     def name(self):
         name = self._model_path + f"{self._upscale_factor}x_epochs({self._n_epochs})"
         if self._optimized:
@@ -358,7 +370,7 @@ class Settings(metaclass=Singleton):
     def create_model(self):
         if self.optimized:
             from model_ench import ObjectAwareESPCN as espcn
-        elif self._separable:
+        elif self.separable:
             from model_sep import EspcnSep as espcn
         else:
             from model import ESPCN as espcn
@@ -366,14 +378,6 @@ class Settings(metaclass=Singleton):
         if self.preload and exists(self.preload_path):
             model = torch.load(self.preload_path, weights_only=False, map_location=self.device)
         return model
-
-    @property
-    def profiler(self):
-        return self._profiler
-
-    @property
-    def optimizer_type(self):
-        return self._optimizer_type
 
 
 def instance():

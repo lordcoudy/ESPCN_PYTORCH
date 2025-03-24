@@ -56,7 +56,9 @@ def train_model(settings):
                 loss = calculateLoss(settings, data, target, settings.model)
                 epoch_loss += loss.item()
                 backPropagate(settings, loss, settings.optimizer)
-            if settings.profiler: logger.debug(prof.key_averages().table(sort_by = "self_cuda_memory_usage"))
+            if settings.profiler:
+                prof_logger = get_logger('profiler')
+                prof_logger.info(prof.key_averages().table(sort_by = "self_cuda_memory_usage"))
             logger.debug(f"===> Epoch[{epoch+1}]({iteration}/{len(settings.training_data_loader)}): Loss: {loss.item():.6f}")
 
         settings.model.eval()

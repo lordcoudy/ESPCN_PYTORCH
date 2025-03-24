@@ -2,8 +2,6 @@ import torch
 import torch.nn as nn
 from torchvision import models
 
-from model import ESPCN
-
 
 class Classifier(nn.Module):
     def __init__(self, num_classes):
@@ -28,7 +26,11 @@ class ObjectAwareESPCN(nn.Module):
     def __init__(self, num_classes, upscale_factor, num_channels = 1):
         super(ObjectAwareESPCN, self).__init__()
         self.classifier = Classifier(num_classes)
-        self.espcn_networks = nn.ModuleList([ESPCN(num_classes=1, upscale_factor=upscale_factor, num_channels=num_channels) for _ in range(num_classes)])
+        if settings.separable:
+            from model_sep import EspcnSep as espcn
+        else:
+            from model import ESPCN as espcn
+        self.espcn_networks = nn.ModuleList([espcn(num_classes=1, upscale_factor=upscale_factor, num_channels=num_channels) for _ in range(num_classes)])
 
     def forward(self, x):
         class_ids = self.classifier(x)  # Shape [batch_size]

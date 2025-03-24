@@ -5,9 +5,9 @@ model_path: "./models/"
 upscale_factor: 2 # 2, 3, 4, 8
 mode: "train"     # "train", "demo"
 # Epoch settings
-epochs_number: 1000
-epoch: 1000
-checkpoint_frequency: 50
+epochs_number: 1500
+epoch: 1500
+checkpoint_frequency: 100
 # Training settings (only for mode: "train"). Do not change
 batch_size: 32
 test_batch_size: 8
@@ -23,10 +23,10 @@ target_min_psnr: 26.5
 # Optimizations
 cuda: true
 tuning: true
-trials: 300       # Tuning trials
+trials: 150       # Tuning trials
 mixed_precision: true
-optimized: false  # Enable Classifier
-num_classes: 4    # Number of classes for Classifier
+optimized: true  # Enable Classifier
+num_classes: 5    # Number of classes for Classifier
 separable: true   # Enable separable Conv2d
 scheduler: true   # Enable learning rate scheduler
 pruning: false    # Enable pruning
@@ -36,4 +36,4 @@ preload_path: "./results/2x_epoch_500_optimized(False)_cuda(True)_tuning(False)_
 # Miscellaneous
 seed: 123
 show_progress_bar: true
-show_profiler: false
+show_profiler: true
