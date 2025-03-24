@@ -17,8 +17,13 @@ def test(settings):
     avg_psnr = 0
     max_mse = 0
     min_mse = 1
+    if settings.show_progress_bar:
+        bar = progress.bar.IncrementalBar('Testing', max=len(settings.testing_data_loader), suffix='%(percent)d%%')
+        bar.start()
     with torch.no_grad():
         for batch in settings.testing_data_loader:
+            if settings.show_progress_bar:
+                bar.next()
             input_tensor, target_tensor = batch[0].to(settings.device), batch[1].to(settings.device)
             mse = calculateLoss(settings, input_tensor, target_tensor, settings.model)
             max_mse = max(max_mse, mse.item())
@@ -26,6 +31,8 @@ def test(settings):
             psnr = 10 * log10(1 / mse.item())
             avg_psnr += psnr
             logger.debug(f"PSNR: {psnr:.6f} dB | MSE: {mse.item():.6f}")
+    if settings.show_progress_bar:
+        bar.finish()
     avg_psnr /= len(settings.testing_data_loader)
     logger.info(f"===> Avg. PSNR: {avg_psnr:.12f} dB >===")
     logger.debug(f"===> Max. MSE: {max_mse:.12f} >===")
@@ -41,11 +48,13 @@ def train_model(settings):
         epoch_loss = 0
         epoch_val_loss = 0
         if settings.show_progress_bar:
-            bar = progress.bar.IncrementalBar(f'Epoch {epoch + 1}', max=len(settings.training_data_loader) + len(settings.validation_data_loader)) # Update bar max
-        bar.start()
+            bar = progress.bar.IncrementalBar(f'Training epoch {epoch + 1}', max=len(settings.training_data_loader), suffix='%(percent)d%%') # Update bar max
+        if settings.show_progress_bar:
+            bar.start()
         for iteration, batch in enumerate(settings.training_data_loader, 1):
             data, target = batch[0].to(settings.device), batch[1].to(settings.device)
-            bar.next()
+            if settings.show_progress_bar:
+                bar.next()
             prof = torch.profiler.profile(
                     activities = [ProfilerActivity.CPU, ProfilerActivity.CUDA],
                     record_shapes = True,
@@ -58,21 +67,27 @@ def train_model(settings):
                 backPropagate(settings, loss, settings.optimizer)
             if settings.profiler:
                 prof_logger = get_logger('profiler')
-                prof_logger.info(prof.key_averages().table(sort_by = "self_cuda_memory_usage"))
+                prof_logger.info(prof.key_averages().table(sort_by = "self_cuda_memory_usage", row_limit = 10))
             logger.debug(f"===> Epoch[{epoch+1}]({iteration}/{len(settings.training_data_loader)}): Loss: {loss.item():.6f}")
-
+        if settings.show_progress_bar:
+            bar.finish()
+        if settings.show_progress_bar:
+            bar = progress.bar.IncrementalBar(f'Validation epoch {epoch + 1}', max=len(settings.validation_data_loader), suffix='%(percent)d%%')
+            bar.start()
         settings.model.eval()
         with torch.no_grad():
             for val_iteration, val_batch in enumerate(settings.validation_data_loader, 1):
                 val_data, val_target = val_batch[0].to(settings.device), val_batch[1].to(settings.device)
                 val_loss = calculateLoss(settings, val_data, val_target, settings.model)
                 epoch_val_loss += val_loss.item()
-                bar.next()
+                if settings.show_progress_bar:
+                    bar.next()
+        if settings.show_progress_bar:
+            bar.finish()
         settings.model.train()
         if settings.scheduler_enabled:
             settings.scheduler.step(epoch_val_loss if settings.scheduler == optim.lr_scheduler.ReduceLROnPlateau else None)
         logger.info(f"===> Epoch {epoch+1}/{settings.epochs_number} Complete: Avg. Loss: {epoch_loss / len(settings.training_data_loader):.12f} Avg. Val. Loss: {epoch_val_loss / len(settings.validation_data_loader)}")
-        bar.finish()
         t_psnr = test(settings)
         psnrs.append(t_psnr)
         delta = psnrs[-1] - max(psnrs)
