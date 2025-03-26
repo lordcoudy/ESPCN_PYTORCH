@@ -29,7 +29,7 @@ class Settings(metaclass=Singleton):
         self.dictionary = yaml.load(stream, Loader=Loader)
         self._pb = self.dictionary['show_progress_bar']
         if self._pb:
-            bar = progress.bar.IncrementalBar('Initializing ', max=47, suffix='%(percent)d%%')
+            bar = progress.bar.IncrementalBar('Initializing ', max=49, suffix='%(percent)d%%')
             bar.start()
             bar.next()
             bar.next()
@@ -194,6 +194,12 @@ class Settings(metaclass=Singleton):
         if self._pb:
             bar.next()
         self._profiler = self.dictionary['show_profiler']
+        if self._pb:
+            bar.next()
+        self._show_result = self.dictionary['show_result']
+        if self._pb:
+            bar.next()
+        self._cycles = self.dictionary['cycles']
         if self._pb:
             bar.next()
             bar.finish()
@@ -388,7 +394,7 @@ class Settings(metaclass=Singleton):
 
     @property
     def name(self):
-        name = self._model_path + f"{self._upscale_factor}x_epochs({self._n_epochs})"
+        name = f"{self._upscale_factor}x_epochs({self._n_epochs})"
         if self._optimized:
             name += f"_optimized({self._num_classes})"
         if self._cuda:
@@ -407,8 +413,16 @@ class Settings(metaclass=Singleton):
             name += f"_optimizer({self._optimizer_type})"
         if self._preload:
             name += "_preloaded"
-        name += f"_seed({self._seed})_batch_size({self._batch_size})_lr({self._lr})_momentum({self._momentum})_weight_decay({self._weight_decay})"
+        name += f"_seed({self._seed})_batch_size({self._batch_size})"
         return name
+
+    @property
+    def show_result(self):
+        return self._show_result
+
+    @property
+    def cycles(self):
+        return self._cycles
 
     def create_model(self):
         if self.optimized:

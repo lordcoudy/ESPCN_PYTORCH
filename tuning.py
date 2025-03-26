@@ -14,7 +14,7 @@ logger = get_logger('tuning')
 
 def train_model(settings, training_data_loader, model, optimizer):
     epoch_loss = 0
-    logger.info(f"Train trial with lr: {settings.learning_rate}, batch_size: {settings.batch_size}, momentum: {settings.momentum}, weight_decay: {settings.weight_decay}, optimizer: {settings.optimizer}")
+    logger.info(f"Train trial with optimizer: {settings.optimizer}")
     for iteration, batch in enumerate(training_data_loader, 1):
         data, target = batch[0].to(settings.device), batch[1].to(settings.device)
         optimizer.zero_grad()
@@ -53,7 +53,8 @@ def objective(trial, settings):
 
 @measure_time
 def tune(settings):
-    study = optuna.create_study(direction="minimize", study_name="ESPCN tuning")
+    optuna.logging.set_verbosity(optuna.logging.WARNING)
+    study = optuna.create_study(direction="minimize", study_name="ESPCN tuning", load_if_exists = True)
     study.optimize(lambda trial: objective(trial, settings), n_trials=settings.trials, show_progress_bar=settings.show_progress_bar)
 
     logger.info('Best trial:')

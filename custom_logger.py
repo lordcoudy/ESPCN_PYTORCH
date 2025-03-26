@@ -2,7 +2,7 @@ import logging
 import os
 
 def get_logger(module_name):
-    log_level = "INFO"
+    log_level = "DEBUG"
     numeric_level = getattr(logging, log_level, logging.DEBUG)
 
     logger = logging.getLogger(module_name)

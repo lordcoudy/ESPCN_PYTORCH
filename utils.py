@@ -13,13 +13,13 @@ logger = get_logger('utils')
 
 def measure_time(func):
     def wrap(*args, **kwargs):
-        start = time.time()
+        start = time.time_ns()
         result = func(*args, **kwargs)
-        end = time.time()
+        end = time.time_ns()
 
         os.makedirs('times', exist_ok=True)
         with open(f'times/time_{func.__name__}.txt', 'a+') as f:
-            print(func.__name__, end - start, file=f)
+            print(func.__name__, f'{end - start} ns', file=f)
         return result
 
     return wrap
@@ -57,7 +57,7 @@ def prune_model(model, amount = 0.2):
 
 @measure_time
 def checkpoint(settings, model, epoch):
-    model_path = f"{settings.name}_ckp{epoch}.pth"
+    model_path = f"{os.path.join(settings.model_path, settings.name)}_ckp{epoch}.pth"
     torch.save(model, model_path)
     logger.debug("Checkpoint saved to {}".format(model_path))
 
@@ -69,7 +69,7 @@ def export_model(settings, model, epoch):
     img_to_tensor = ToTensor()
     input_tensor = img_to_tensor(y).unsqueeze(0).to(settings.device)
     traced_script = torch.jit.trace(model, input_tensor)
-    traced_model_path = f"{settings.name}_TRACED_ckp{epoch}.pth"
+    traced_model_path = f"{os.path.join(settings.model_path, settings.name)}_TRACED_ckp{epoch}.pth"
     traced_script.save(traced_model_path)
     logger.debug("Traced model saved to {}".format(traced_model_path))
 

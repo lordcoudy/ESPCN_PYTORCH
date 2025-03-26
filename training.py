@@ -4,9 +4,8 @@ from math import log10
 import progress.bar
 import torch.profiler
 from colorama import Fore
-from torch.profiler import ProfilerActivity
-
 from custom_logger import get_logger
+from torch.profiler import ProfilerActivity
 from utils import *
 
 logger = get_logger('training')
@@ -17,11 +16,10 @@ def test(settings, bar, epoch):
     avg_psnr = 0
     max_mse = 0
     min_mse = 1
-    if settings.show_progress_bar:
-        bar.bar_prefix = f'Testing epoch {epoch + 1}: '
     with torch.no_grad():
-        for batch in settings.testing_data_loader:
+        for test_iteration, batch in enumerate(settings.testing_data_loader, 1):
             if settings.show_progress_bar:
+                bar.bar_prefix = f'Testing epoch {epoch + 1} [{test_iteration}/{len(settings.training_data_loader)}]: '
                 bar.next()
             input_tensor, target_tensor = batch[0].to(settings.device), batch[1].to(settings.device)
             mse = calculateLoss(settings, input_tensor, target_tensor, settings.model)
@@ -44,16 +42,15 @@ def train_model(settings):
     slowdown_counter = 0
     if settings.show_progress_bar:
         bar = progress.bar.IncrementalBar(max=settings.epochs_number*(len(settings.training_data_loader) + len(settings.validation_data_loader) + len(settings.testing_data_loader)),
-                                                  suffix='%(percent).3f%% - Elapsed: %(elapsed)ds - Time left: %(eta)ds') # Update bar max
+                                                  suffix='[%(percent).3f%%] - [%(elapsed).2fs>%(eta).2fs - %(avg).2fs / it]') # Update bar max
         bar.start()
     for epoch in range(settings.epochs_number):
         epoch_loss = 0
         epoch_val_loss = 0
-        if settings.show_progress_bar:
-            bar.bar_prefix = f'Training epoch {epoch + 1}: '
         for iteration, batch in enumerate(settings.training_data_loader, 1):
             data, target = batch[0].to(settings.device), batch[1].to(settings.device)
             if settings.show_progress_bar:
+                bar.bar_prefix = f'Training epoch {epoch + 1} [{iteration}/{len(settings.training_data_loader)}]: '
                 bar.next()
             prof = torch.profiler.profile(
                     activities = [ProfilerActivity.CPU, ProfilerActivity.CUDA],
@@ -69,8 +66,6 @@ def train_model(settings):
                 prof_logger = get_logger('profiler')
                 prof_logger.info(prof.key_averages().table(sort_by = "self_cuda_memory_usage", row_limit = 10))
             logger.debug(f"Epoch[{epoch+1}]({iteration}/{len(settings.training_data_loader)}): Loss: {loss.item():.6f}")
-        if settings.show_progress_bar:
-            bar.bar_prefix = f'Validating epoch {epoch + 1}: '
         settings.model.eval()
         with torch.no_grad():
             for val_iteration, val_batch in enumerate(settings.validation_data_loader, 1):
@@ -78,6 +73,7 @@ def train_model(settings):
                 val_loss = calculateLoss(settings, val_data, val_target, settings.model)
                 epoch_val_loss += val_loss.item()
                 if settings.show_progress_bar:
+                    bar.bar_prefix = f'Validating epoch {epoch + 1} [{val_iteration}/{len(settings.validation_data_loader)}]: '
                     bar.next()
         settings.model.train()
         if settings.scheduler_enabled:
@@ -85,13 +81,13 @@ def train_model(settings):
         logger.info(f"Epoch {epoch+1}/{settings.epochs_number} Complete: Avg. Loss: {epoch_loss / len(settings.training_data_loader):.12f} Avg. Val. Loss: {epoch_val_loss / len(settings.validation_data_loader)}")
         t_psnr = test(settings, bar, epoch)
         psnrs.append(t_psnr)
-        delta = psnrs[-1] - max(psnrs)
+        delta = t_psnr - max(psnrs)
         if delta < settings.psnr_delta:
             slowdown_counter += 1
         else:
             slowdown_counter = 0
         if slowdown_counter == settings.stuck_level and t_psnr < settings.target_min_psnr:
-            logger.error(Fore.RED + f"Training seems to be stuck. Rerunning.")
+            logger.error(f"Training seems to be stuck. Rerunning.")
             return -2
 
         if settings.pruning and (epoch + 1) % 100 == 0:
@@ -103,6 +99,8 @@ def train_model(settings):
             os.makedirs('psnrs', exist_ok=True)
             with open(os.path.join('psnrs', 'max_psnrs.txt'), 'a+') as f:
                 print(f"Epoch {epoch+1}: {t_psnr:.6f} dB", end="\n", file=f)
+            if settings.show_progress_bar:
+                bar.suffix = f'[%(percent).3f%%] - [%(elapsed).2fs>%(eta).2fs - %(avg).2fs / it] - Max.PSNR: {t_psnr:.6f} dB'
     if settings.show_progress_bar:
         bar.finish()
     get_params(settings.model)
