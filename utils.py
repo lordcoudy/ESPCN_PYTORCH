@@ -59,7 +59,7 @@ def prune_model(model, amount = 0.2):
 def checkpoint(settings, model, epoch):
     model_path = f"{settings.name}_ckp{epoch}.pth"
     torch.save(model, model_path)
-    logger.debug("===> Checkpoint saved to {} >===".format(model_path))
+    logger.debug("Checkpoint saved to {}".format(model_path))
 
 @measure_time
 def export_model(settings, model, epoch):
@@ -71,11 +71,11 @@ def export_model(settings, model, epoch):
     traced_script = torch.jit.trace(model, input_tensor)
     traced_model_path = f"{settings.name}_TRACED_ckp{epoch}.pth"
     traced_script.save(traced_model_path)
-    logger.debug("===> Traced model saved to {} >===".format(traced_model_path))
+    logger.debug("Traced model saved to {}".format(traced_model_path))
 
 def get_params(model):
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    logger.debug(f"===> Total parameters: {total_params} >===")
-    logger.debug(f"===> Trainable parameters: {trainable_params} >===")
+    logger.debug(f"Total parameters: {total_params}")
+    logger.debug(f"Trainable parameters: {trainable_params}")
 

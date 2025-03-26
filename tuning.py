@@ -21,8 +21,8 @@ def train_model(settings, training_data_loader, model, optimizer):
         loss = calculateLoss(settings, data, target, model)
         epoch_loss += loss.item()
         backPropagate(settings, loss, optimizer)
-        logger.debug(f"===> {iteration}/{len(settings.training_data_loader)}): Loss: {loss.item():.6f}")
-    logger.info(f"===> Avg. Loss: {epoch_loss / len(training_data_loader):.6f}")
+        logger.debug(f"{iteration}/{len(settings.training_data_loader)}): Loss: {loss.item():.6f}")
+    logger.info(f"Avg. Loss: {epoch_loss / len(training_data_loader):.6f}")
     return epoch_loss / len(training_data_loader)
 
 @measure_time
