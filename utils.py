@@ -1,5 +1,6 @@
 import os
 import time
+from os.path import isdir
 
 import torch
 from PIL import Image
@@ -64,7 +65,11 @@ def checkpoint(settings, model, epoch):
 @measure_time
 def export_model(settings, model, epoch):
     model.eval()
-    img = Image.open(settings.input_path).convert('YCbCr')
+    if isdir(settings.input_path):
+        input_path = f"./dataset/BSDS500/images/test/3063.jpg"
+    else:
+        input_path = settings.input_path
+    img = Image.open(input_path).convert('YCbCr')
     y, cb, cr = img.split()
     img_to_tensor = ToTensor()
     input_tensor = img_to_tensor(y).unsqueeze(0).to(settings.device)

@@ -1,9 +1,9 @@
 ---
-input_path: "E:/SAVVA/STUDY/CUDA/TESTS/DATASET/archive/Set5/Set5" # can be a directory with images or a single image
+input_path: "./dataset/BSDS500/images/test/" # can be a directory with images or a single image
 output_path: "./results/"
 model_path: "./models/"
 upscale_factor: 2 # 2, 3, 4, 8
-mode: "demo" # "train", "demo"
+mode: "train" # "train", "demo"
 # Epoch settings
 epochs_number: 2000
 epoch: 2000
@@ -25,14 +25,14 @@ cuda: true
 tuning: true
 trials: 150 # Tuning trials
 mixed_precision: true
-optimized: true # Enable Classifier
+optimized: false # Enable Classifier
 num_classes: 5 # Number of classes for Classifier
 separable: true # Enable separable Conv2d
 scheduler: true # Enable learning rate scheduler
 pruning: false # Enable pruning
 prune_amount: 0.1
 preload: true # Preload model
-preload_path: "./results/2x_epochs(1500)_optimized(5)_cuda_tuning_mixed_precision_with_scheduler_separable_optimizer(adam)_seed(123)_batch_size(16)_lr(0.0009346227518033354)_momentum(0.9444533942913925)_weight_decay(5.079110223222985e-05)_ckp422.pth"
+preload_path: "./results/2x_epochs(2000)_cuda_tuning_mixed_precision_with_scheduler_separable_optimizer(adam)_seed(123)_batch_size(16)_ckp1942.pth"
 # Miscellaneous
 seed: 123
 show_progress_bar: true
