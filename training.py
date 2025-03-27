@@ -19,7 +19,7 @@ def test(settings, bar, epoch):
     with torch.no_grad():
         for test_iteration, batch in enumerate(settings.testing_data_loader, 1):
             if settings.show_progress_bar:
-                bar.bar_prefix = f'Testing epoch {epoch + 1} [{test_iteration}/{len(settings.training_data_loader)}]: '
+                bar.bar_prefix = f'Testing epoch {epoch + 1} [{test_iteration}/{len(settings.testing_data_loader)}]: '
                 bar.next()
             input_tensor, target_tensor = batch[0].to(settings.device), batch[1].to(settings.device)
             mse = calculateLoss(settings, input_tensor, target_tensor, settings.model)
