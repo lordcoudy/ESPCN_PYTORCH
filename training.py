@@ -96,11 +96,12 @@ def train_model(settings):
         if t_psnr == max(psnrs) or epoch+1 == settings.checkpoint_frequency:
             checkpoint(settings, settings.model, epoch+1)
             export_model(settings, settings.model, epoch+1)
-            os.makedirs('psnrs', exist_ok=True)
-            with open(os.path.join('psnrs', 'max_psnrs.txt'), 'a+') as f:
+            max_ = max(psnrs)
+            os.makedirs(settings.model_dir, exist_ok = True)
+            with open(os.path.join(settings.model_dir, 'max_psnrs.txt'), 'a+') as f:
                 print(f"Epoch {epoch+1}: {t_psnr:.6f} dB", end="\n", file=f)
             if settings.show_progress_bar:
-                bar.suffix = f'[%(percent).3f%%] - [%(elapsed).2fs>%(eta).2fs - %(avg).2fs / it] - Max.PSNR: {t_psnr:.6f} dB'
+                bar.suffix = f'[%(percent).3f%%] - [%(elapsed).2fs>%(eta).2fs - %(avg).2fs / it] - Max.PSNR: {max_:.6f} dB'
     if settings.show_progress_bar:
         bar.finish()
     get_params(settings.model)

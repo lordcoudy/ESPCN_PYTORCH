@@ -47,8 +47,8 @@ def run(settings):
         model = torch.load(model_path, weights_only = False, map_location=settings.device)
         model = model.to(settings.device)
         model.eval()
-        os.makedirs(f'{os.path.join(settings.output_path, settings.name)}/', exist_ok = True)
         output_path = f'{os.path.join(settings.output_path, settings.name)}/'
+        os.makedirs(output_path, exist_ok = True)
         if not isfile(settings.input_path):
             if isdir(settings.input_path):
                 dir = settings.input_path

@@ -1,5 +1,6 @@
 import logging
 import os
+from settings import model_dir_i
 
 def get_logger(module_name):
     log_level = "DEBUG"
@@ -8,7 +9,7 @@ def get_logger(module_name):
     logger = logging.getLogger(module_name)
     if not logger.handlers:
         logger.setLevel(numeric_level)
-        log_dir = 'logs'
+        log_dir = os.path.join(model_dir_i(), 'logs')
         os.makedirs(log_dir, exist_ok=True)
 
         file_handler = logging.FileHandler(os.path.join(log_dir, f"{module_name}.log"))
