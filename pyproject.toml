@@ -1,0 +1,38 @@
+[project]
+name = "espcn-pytorch"
+version = "0.1.0"
+description = "modified implementation of the ESPCN"
+authors = [
+    {name = "Your Name",email = "you@example.com"}
+]
+license = {text = "This project is licensed under the MIT License."}
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "torch (>=2.6.0,<3.0.0)",
+    "torchvision (>=0.21.0,<0.22.0)",
+    "torchaudio (>=2.6.0,<3.0.0)",
+    "pyyaml (>=6.0.2,<6.1.0)",
+    "six (>=1.16.0,<1.17.0)",
+    "pillow (>=10.4.0,<10.5.0)",
+    "numpy (>=1.26.4,<1.27.0)",
+    "optuna (>=4.2.1,<4.3.0)",
+    "progress (>=1.5,<2.0)",
+    "colorama (>=0.4.6,<0.5.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "pytorch_cuda"
+url = "https://download.pytorch.org/whl/cu126"
+priority = "explicit"
+
+
+[tool.poetry.dependencies]
+torch = {source = "pytorch_cuda"}
+torchvision = {source = "pytorch_cuda"}
+torchaudio = {source = "pytorch_cuda"}

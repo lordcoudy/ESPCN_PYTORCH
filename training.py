@@ -1,5 +1,6 @@
 from contextlib import nullcontext
 from math import log10
+from os import remove, rmdir
 
 import progress.bar
 import torch.profiler
@@ -88,9 +89,10 @@ def train_model(settings):
             slowdown_counter = 0
         if slowdown_counter == settings.stuck_level and t_psnr < settings.target_min_psnr:
             logger.error(f"Training seems to be stuck. Rerunning.")
+            remove(os.path.join(settings.model_dir, 'max_psnrs.txt'))
             return -2
 
-        if settings.pruning and (epoch + 1) % 100 == 0:
+        if settings.pruning and (epoch + 1) % 200 == 0:
             prune_model(settings.model, settings.prune_amount)
 
         if t_psnr == max(psnrs) or epoch+1 == settings.checkpoint_frequency:
