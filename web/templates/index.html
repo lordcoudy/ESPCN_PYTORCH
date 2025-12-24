@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESPCN PyTorch - Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h1><i class="fas fa-brain"></i> ESPCN</h1>
+                <span class="version">PyTorch</span>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item active" data-tab="dashboard">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Dashboard</span>
+                </li>
+                <li class="nav-item" data-tab="training">
+                    <i class="fas fa-dumbbell"></i>
+                    <span>Training</span>
+                </li>
+                <li class="nav-item" data-tab="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </li>
+                <li class="nav-item" data-tab="models">
+                    <i class="fas fa-cube"></i>
+                    <span>Models</span>
+                </li>
+                <li class="nav-item" data-tab="results">
+                    <i class="fas fa-images"></i>
+                    <span>Results</span>
+                </li>
+                <li class="nav-item" data-tab="system">
+                    <i class="fas fa-server"></i>
+                    <span>System</span>
+                </li>
+            </ul>
+            <div class="sidebar-footer">
+                <div class="status-indicator">
+                    <span class="status-dot" id="server-status"></span>
+                    <span>Server Status</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Tab -->
+            <section class="tab-content active" id="dashboard-tab">
+                <div class="page-header">
+                    <h2>Dashboard</h2>
+                    <p>Overview of training progress and system resources</p>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon cpu"><i class="fas fa-microchip"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">CPU Usage</span>
+                            <span class="stat-value" id="cpu-usage">0%</span>
+                            <div class="progress-bar"><div class="progress" id="cpu-progress"></div></div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon memory"><i class="fas fa-memory"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Memory</span>
+                            <span class="stat-value" id="memory-usage">0%</span>
+                            <div class="progress-bar"><div class="progress" id="memory-progress"></div></div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon gpu"><i class="fas fa-gamepad"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">GPU</span>
+                            <span class="stat-value" id="gpu-status">N/A</span>
+                            <div class="progress-bar"><div class="progress" id="gpu-progress"></div></div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon training"><i class="fas fa-running"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Training Status</span>
+                            <span class="stat-value" id="training-status">Idle</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-row">
+                    <div class="card training-progress-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-chart-area"></i> Training Progress</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="progress-info">
+                                <div class="progress-item">
+                                    <span>Epoch</span>
+                                    <strong id="current-epoch">0 / 0</strong>
+                                </div>
+                                <div class="progress-item">
+                                    <span>Current PSNR</span>
+                                    <strong id="current-psnr">0.00 dB</strong>
+                                </div>
+                                <div class="progress-item">
+                                    <span>Best PSNR</span>
+                                    <strong id="best-psnr">0.00 dB</strong>
+                                </div>
+                                <div class="progress-item">
+                                    <span>Elapsed Time</span>
+                                    <strong id="elapsed-time">00:00:00</strong>
+                                </div>
+                            </div>
+                            <div class="epoch-progress">
+                                <div class="progress-bar large">
+                                    <div class="progress" id="epoch-progress-bar"></div>
+                                </div>
+                                <span class="progress-text" id="epoch-progress-text">0%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card quick-actions-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="action-buttons">
+                                <button class="btn btn-primary btn-large" id="btn-start-training">
+                                    <i class="fas fa-play"></i> Start Training
+                                </button>
+                                <button class="btn btn-danger btn-large" id="btn-stop-training" disabled>
+                                    <i class="fas fa-stop"></i> Stop Training
+                                </button>
+                                <button class="btn btn-secondary" id="btn-run-demo">
+                                    <i class="fas fa-image"></i> Run Demo
+                                </button>
+                                <button class="btn btn-secondary" id="btn-tune">
+                                    <i class="fas fa-sliders-h"></i> Tune Hyperparameters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card logs-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-terminal"></i> Live Logs</h3>
+                        <button class="btn btn-icon" id="btn-clear-logs"><i class="fas fa-trash"></i></button>
+                    </div>
+                    <div class="card-body">
+                        <div class="logs-container" id="logs-container">
+                            <div class="log-placeholder">No logs yet. Start training to see output.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Training Tab -->
+            <section class="tab-content" id="training-tab">
+                <div class="page-header">
+                    <h2>Training Control</h2>
+                    <p>Configure and manage model training</p>
+                </div>
+
+                <div class="training-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-cogs"></i> Training Configuration</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="training-config-form">
+                                <div class="form-group">
+                                    <label>Upscale Factor</label>
+                                    <select id="train-upscale">
+                                        <option value="2">2x</option>
+                                        <option value="3">3x</option>
+                                        <option value="4">4x</option>
+                                        <option value="8">8x</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Number of Epochs</label>
+                                    <input type="number" id="train-epochs" value="2000" min="1">
+                                </div>
+                                <div class="form-group">
+                                    <label>Batch Size</label>
+                                    <select id="train-batch-size">
+                                        <option value="8">8</option>
+                                        <option value="16" selected>16</option>
+                                        <option value="32">32</option>
+                                        <option value="64">64</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Learning Rate</label>
+                                    <input type="number" id="train-lr" value="0.001" step="0.0001" min="0">
+                                </div>
+                                <div class="form-group">
+                                    <label>Optimizer</label>
+                                    <select id="train-optimizer">
+                                        <option value="adam">Adam</option>
+                                        <option value="sgd">SGD</option>
+                                    </select>
+                                </div>
+                                <div class="form-group checkbox-group">
+                                    <label>
+                                        <input type="checkbox" id="train-tuning">
+                                        <span>Enable Hyperparameter Tuning</span>
+                                    </label>
+                                </div>
+                                <div class="form-group checkbox-group">
+                                    <label>
+                                        <input type="checkbox" id="train-mixed-precision" checked>
+                                        <span>Mixed Precision Training</span>
+                                    </label>
+                                </div>
+                                <div class="form-group checkbox-group">
+                                    <label>
+                                        <input type="checkbox" id="train-scheduler" checked>
+                                        <span>Use Learning Rate Scheduler</span>
+                                    </label>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-microchip"></i> Device Settings</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label>Compute Device</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="device" value="cpu">
+                                        <span>CPU</span>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="device" value="cuda">
+                                        <span>CUDA (NVIDIA)</span>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="device" value="mps">
+                                        <span>MPS (Apple Silicon)</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="device-info" id="device-info">
+                                <p><i class="fas fa-info-circle"></i> Device info loading...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-network-wired"></i> Model Architecture</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group checkbox-group">
+                                <label>
+                                    <input type="checkbox" id="train-separable" checked>
+                                    <span>Separable Convolutions</span>
+                                </label>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <label>
+                                    <input type="checkbox" id="train-optimized">
+                                    <span>Object-Aware ESPCN</span>
+                                </label>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <label>
+                                    <input type="checkbox" id="train-pruning">
+                                    <span>Enable Pruning</span>
+                                </label>
+                            </div>
+                            <div class="form-group" id="prune-amount-group" style="display:none;">
+                                <label>Prune Amount</label>
+                                <input type="range" id="train-prune-amount" min="0" max="0.5" step="0.05" value="0.1">
+                                <span id="prune-amount-value">0.1</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-folder-open"></i> Preload Model</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group checkbox-group">
+                                <label>
+                                    <input type="checkbox" id="train-preload">
+                                    <span>Preload Existing Model</span>
+                                </label>
+                            </div>
+                            <div class="form-group" id="preload-path-group" style="display:none;">
+                                <label>Model Path</label>
+                                <select id="train-preload-path">
+                                    <option value="">Select a model...</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-bar">
+                    <button class="btn btn-secondary" id="btn-save-config">
+                        <i class="fas fa-save"></i> Save Configuration
+                    </button>
+                    <button class="btn btn-primary btn-large" id="btn-start-training-2">
+                        <i class="fas fa-rocket"></i> Start Training
+                    </button>
+                </div>
+            </section>
+
+            <!-- Settings Tab -->
+            <section class="tab-content" id="settings-tab">
+                <div class="page-header">
+                    <h2>Settings</h2>
+                    <p>Configure all ESPCN parameters</p>
+                </div>
+
+                <div class="settings-container">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-code"></i> YAML Configuration</h3>
+                            <div class="card-actions">
+                                <button class="btn btn-secondary" id="btn-reload-settings">
+                                    <i class="fas fa-sync"></i> Reload
+                                </button>
+                                <button class="btn btn-primary" id="btn-save-yaml">
+                                    <i class="fas fa-save"></i> Save
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <textarea id="yaml-editor" spellcheck="false"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-sliders-h"></i> Visual Settings Editor</h3>
+                        </div>
+                        <div class="card-body settings-form-container" id="settings-form-container">
+                            <!-- Dynamic form will be generated here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Models Tab -->
+            <section class="tab-content" id="models-tab">
+                <div class="page-header">
+                    <h2>Models</h2>
+                    <p>Browse and manage trained models</p>
+                </div>
+
+                <div class="models-grid" id="models-grid">
+                    <!-- Model cards will be generated here -->
+                </div>
+            </section>
+
+            <!-- Results Tab -->
+            <section class="tab-content" id="results-tab">
+                <div class="page-header">
+                    <h2>Results</h2>
+                    <p>View super-resolution results</p>
+                </div>
+
+                <div class="results-browser">
+                    <div class="results-sidebar">
+                        <h4>Result Sets</h4>
+                        <ul class="result-sets" id="result-sets">
+                            <!-- Result set list -->
+                        </ul>
+                    </div>
+                    <div class="results-viewer">
+                        <div class="image-gallery" id="image-gallery">
+                            <div class="gallery-placeholder">
+                                <i class="fas fa-images"></i>
+                                <p>Select a result set to view images</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Image Lightbox -->
+                <div class="lightbox" id="lightbox">
+                    <button class="lightbox-close"><i class="fas fa-times"></i></button>
+                    <button class="lightbox-prev"><i class="fas fa-chevron-left"></i></button>
+                    <button class="lightbox-next"><i class="fas fa-chevron-right"></i></button>
+                    <img class="lightbox-image" id="lightbox-image" src="" alt="">
+                    <div class="lightbox-info" id="lightbox-info"></div>
+                </div>
+            </section>
+
+            <!-- System Tab -->
+            <section class="tab-content" id="system-tab">
+                <div class="page-header">
+                    <h2>System Monitor</h2>
+                    <p>Real-time system resource monitoring</p>
+                </div>
+
+                <div class="system-grid">
+                    <div class="card system-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-microchip"></i> CPU</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="gauge-container">
+                                <div class="gauge" id="cpu-gauge">
+                                    <div class="gauge-fill"></div>
+                                    <div class="gauge-center">
+                                        <span id="cpu-gauge-value">0%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="cpu-cores" id="cpu-cores">
+                                <!-- Per-core bars -->
+                            </div>
+                            <div class="system-details" id="cpu-details">
+                                <p><strong>Cores:</strong> <span id="cpu-count">-</span></p>
+                                <p><strong>Frequency:</strong> <span id="cpu-freq">-</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card system-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-memory"></i> Memory</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="gauge-container">
+                                <div class="gauge" id="memory-gauge">
+                                    <div class="gauge-fill"></div>
+                                    <div class="gauge-center">
+                                        <span id="memory-gauge-value">0%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="system-details" id="memory-details">
+                                <p><strong>Used:</strong> <span id="memory-used">-</span></p>
+                                <p><strong>Available:</strong> <span id="memory-available">-</span></p>
+                                <p><strong>Total:</strong> <span id="memory-total">-</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card system-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-hdd"></i> Disk</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="gauge-container">
+                                <div class="gauge" id="disk-gauge">
+                                    <div class="gauge-fill"></div>
+                                    <div class="gauge-center">
+                                        <span id="disk-gauge-value">0%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="system-details" id="disk-details">
+                                <p><strong>Used:</strong> <span id="disk-used">-</span></p>
+                                <p><strong>Free:</strong> <span id="disk-free">-</span></p>
+                                <p><strong>Total:</strong> <span id="disk-total">-</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card system-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-video"></i> GPU</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="gpu-info" id="gpu-info">
+                                <p><i class="fas fa-spinner fa-spin"></i> Detecting GPU...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-info-circle"></i> System Information</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="system-info-grid" id="system-info-grid">
+                            <!-- System info will be populated -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

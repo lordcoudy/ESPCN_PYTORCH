@@ -194,6 +194,8 @@ class Settings(metaclass=Singleton):
             worker_init_fn=worker_init_fn if effective_threads > 0 else None
         )
         if self._scheduler_enabled:
+            # Ensure optimizer step count is set BEFORE creating scheduler to avoid warning
+            self._optimizer._step_count = 1
             self._scheduler = optim.lr_scheduler.OneCycleLR(
                 self._optimizer,
                 max_lr=self._lr,
@@ -202,8 +204,8 @@ class Settings(metaclass=Singleton):
                 anneal_strategy='cos',
                 final_div_factor=1e4
             )
-            # Suppress the spurious warning about calling scheduler.step() before optimizer.step()
-            self._optimizer._step_count = 1
+            # Also set the scheduler's internal counter to match
+            self._scheduler._step_count = 1
 
     def update_setting(self, key, value):
         self.dictionary[key] = value

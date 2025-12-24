@@ -22,9 +22,16 @@ def get_logger(module_name):
         log_dir = _get_log_dir()
         os.makedirs(log_dir, exist_ok=True)
 
+        # File handler for persistent logging
         file_handler = logging.FileHandler(os.path.join(log_dir, f"{module_name}.log"))
         file_handler.setLevel(numeric_level)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
+
+        # Stream handler for stdout (captured by web server subprocess)
+        stream_handler = logging.StreamHandler()
+        stream_handler.setLevel(logging.INFO)  # Only INFO+ to stdout to reduce noise
+        stream_handler.setFormatter(formatter)
+        logger.addHandler(stream_handler)
     return logger

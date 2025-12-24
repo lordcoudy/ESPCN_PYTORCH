@@ -1,3 +1,9 @@
+import warnings
+
+# Suppress known false-positive warnings
+warnings.filterwarnings('ignore', message='.*lr_scheduler.step.*before.*optimizer.step.*')
+warnings.filterwarnings('ignore', category=UserWarning, module='multiprocessing.resource_tracker')
+
 from custom_logger import get_logger
 from demo import run
 from settings import instance as settings

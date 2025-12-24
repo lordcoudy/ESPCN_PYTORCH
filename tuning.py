@@ -139,3 +139,19 @@ def tune(settings):
                 settings.optimizer = optim.Adam(settings.model.parameters(), lr=settings.learning_rate, weight_decay=settings.weight_decay)
             else:
                 settings.optimizer = optim.AdamW(settings.model.parameters(), lr=settings.learning_rate, weight_decay=settings.weight_decay)
+    
+    # Recreate the scheduler with the new optimizer after tuning
+    if settings.scheduler_enabled:
+        settings._optimizer._step_count = 1
+        settings._scheduler = optim.lr_scheduler.OneCycleLR(
+            settings._optimizer,
+            max_lr=settings.learning_rate,
+            steps_per_epoch=len(settings.training_data_loader),
+            epochs=settings.epochs_number,
+            anneal_strategy='cos',
+            final_div_factor=1e4
+        )
+        settings._scheduler._step_count = 1
+        logger.info("Scheduler recreated with tuned parameters")
+    
+    logger.info("Tuning complete, ready for training")
