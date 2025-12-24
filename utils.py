@@ -5,12 +5,29 @@ from os.path import isdir
 import torch
 from PIL import Image
 from torch.nn.utils import prune
-from torch import optim
 from torchvision.transforms import ToTensor
 
 from custom_logger import get_logger
 
 logger = get_logger('utils')
+
+
+def sync_device(device):
+    """Synchronize device to ensure all operations are complete.
+    Critical for accurate timing on async devices (CUDA/MPS)."""
+    if device.type == 'cuda':
+        torch.cuda.synchronize()
+    elif device.type == 'mps':
+        torch.mps.synchronize()
+
+
+def empty_cache(device):
+    """Clear device memory cache to prevent OOM errors."""
+    if device.type == 'cuda':
+        torch.cuda.empty_cache()
+    elif device.type == 'mps':
+        torch.mps.empty_cache()
+
 
 def measure_time(func):
     def wrap(*args, **kwargs):
@@ -30,13 +47,18 @@ def measure_time(func):
 
 
 def calculateLoss(settings, data, target, model):
-    with torch.amp.autocast(device_type = "cuda" if settings.cuda else "cpu", enabled =settings.mixed_precision):
+    # Determine device type for autocast (MPS doesn't fully support autocast, use CPU fallback)
+    device_type = str(settings.device.type)
+    autocast_device = device_type if device_type in ('cuda', 'cpu') else 'cpu'
+    autocast_enabled = settings.mixed_precision and device_type == 'cuda'  # AMP autocast only fully supported on CUDA
+    with torch.amp.autocast(device_type=autocast_device, enabled=autocast_enabled):
         output = model(data)
         loss = settings.criterion(output, target)
     return loss
 
 def backPropagate(settings, loss, optimizer):
-    if settings.scaler:
+    # Check if scaler is enabled (scaler object is always truthy)
+    if settings.scaler is not None and settings.scaler.is_enabled():
         settings.scaler.scale(loss).backward()
         settings.scaler.step(optimizer)
         settings.scaler.update()
@@ -77,6 +99,9 @@ def export_model(settings, model, epoch):
     y, cb, cr = img.split()
     img_to_tensor = ToTensor()
     input_tensor = img_to_tensor(y).unsqueeze(0).to(settings.device)
+    # Apply channels_last memory format if enabled for consistent tracing
+    if settings.channels_last:
+        input_tensor = input_tensor.to(memory_format=torch.channels_last)
     traced_script = torch.jit.trace(model, input_tensor)
     os.makedirs(settings.model_dir, exist_ok = True)
     traced_model_path = f"{os.path.join(settings.model_dir, settings.name)}_TRACED_ckp{epoch}.pth"

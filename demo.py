@@ -17,7 +17,9 @@ logger = get_logger('demo')
 
 @measure_time
 def model_seq(settings, model, input):
-    out = model(input)
+    # Use inference_mode for fastest inference
+    with torch.inference_mode():
+        out = model(input)
     return out
 
 def process_image(input_image, settings, model, output_path):
@@ -25,7 +27,10 @@ def process_image(input_image, settings, model, output_path):
     y, cb, cr = image.split()
     image_to_tensor = ToTensor()
     input = image_to_tensor(y).unsqueeze(0)
-    input = input.to(settings.device)
+    input = input.to(settings.device, non_blocking=True)
+    # Apply channels_last memory format if enabled
+    if settings.channels_last:
+        input = input.to(memory_format=torch.channels_last)
     out = model_seq(settings, model, input)
     out = out.cpu().squeeze(0).clamp(0, 1)
     out_image_y = ToPILImage()(out)
@@ -46,6 +51,9 @@ def run(settings):
     if model_available:
         model = torch.load(model_path, weights_only = False, map_location=settings.device)
         model = model.to(settings.device)
+        # Apply channels_last memory format if enabled
+        if settings.channels_last:
+            model = model.to(memory_format=torch.channels_last)
         model.eval()
         output_path = f'{os.path.join(settings.output_path, settings.name)}/'
         os.makedirs(output_path, exist_ok = True)
@@ -60,6 +68,9 @@ def run(settings):
                                                   suffix = '[%(percent).3f%%] - [%(elapsed).2fs>%(eta).2fs - %(avg).2fs / it]')  # Update bar max
                 bar.start()
             for file in os.listdir(dir):
+                # Skip non-image files
+                if not file.lower().endswith(('.png', '.jpg', '.jpeg')):
+                    continue
                 it = it + 1
                 if settings.show_progress_bar:
                     bar.bar_prefix = f'Processing image {os.path.basename(file)} [{it}/{min(settings.cycles, len(os.listdir(dir)))}]: '
@@ -68,6 +79,8 @@ def run(settings):
                 process_image(input_image, settings, model, output_path)
                 if it == settings.cycles:
                     break
+            if settings.show_progress_bar:
+                bar.finish()
         else:
             input_image = settings.input_path
             process_image(input_image, settings, model, output_path)

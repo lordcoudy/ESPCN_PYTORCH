@@ -21,21 +21,25 @@ psnr_delta: 0
 stuck_level: 30
 target_min_psnr: 26
 # Optimizations
-cuda: true
+cuda: false
+mps: true # Apple Neural Engine (Apple Silicon only)
 tuning: true
 trials: 150 # Tuning trials
 mixed_precision: true
+compile_model: true # torch.compile() for PyTorch 2.0+ optimization
+channels_last: true # Memory format optimization
+persistent_workers: true # Keep DataLoader workers alive between epochs
 optimized: false # Enable Classifier
 num_classes: 5 # Number of classes for Classifier
 separable: true # Enable separable Conv2d
 scheduler: true # Enable learning rate scheduler
 pruning: false # Enable pruning
 prune_amount: 0.1
-preload: true # Preload model
+preload: false # Preload model
 preload_path: "./results/2x_epochs(2000)_cuda_tuning_mixed_precision_with_scheduler_separable_optimizer(adam)_seed(123)_batch_size(16)_ckp1942.pth"
 # Miscellaneous
 seed: 123
 show_progress_bar: true
-show_profiler: true
+show_profiler: false
 show_result: false
 cycles: 200

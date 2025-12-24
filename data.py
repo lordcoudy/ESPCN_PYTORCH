@@ -3,11 +3,18 @@ import random
 import zipfile
 from os.path import join, exists
 
+import torch
 import torch.utils.data as data
 from PIL import Image
 from six.moves import urllib
 from torchvision.transforms import ToTensor, InterpolationMode
 from torchvision.transforms import functional as F
+
+
+def worker_init_fn(worker_id):
+    """Initialize random seed for each DataLoader worker for reproducibility."""
+    seed = torch.initial_seed() % 2**32
+    random.seed(seed + worker_id)
 
 
 def is_image_file(filename):

@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 from torch.nn import init
 
@@ -5,12 +6,23 @@ from ICNR import ICNR
 
 
 class ESPCN(nn.Module):
-    def __init__(self, num_classes, upscale_factor, num_channels=1, separable=False):
+    VALID_UPSCALE_FACTORS = (2, 3, 4, 8)
+    
+    def __init__(self, num_classes, upscale_factor, num_channels=1, separable=False, dropout_rate=0.5):
         super(ESPCN, self).__init__()
-        self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(p=0.5) 
+        
+        # Validate upscale_factor
+        if upscale_factor not in self.VALID_UPSCALE_FACTORS:
+            raise ValueError(
+                f"upscale_factor must be one of {self.VALID_UPSCALE_FACTORS}, got {upscale_factor}"
+            )
+        
+        # Use inplace=True for ReLU to save memory (no need to store input for backward)
+        self.relu = nn.ReLU(inplace=True)
+        self.dropout_rate = dropout_rate
         self.conv1 = nn.Conv2d(num_channels, 64, (5, 5), padding=(2, 2), padding_mode='reflect')
         if separable:
+            # Depthwise separable convolutions: more efficient on Apple Silicon ANE
             self.conv2_depthwise = nn.Conv2d(64, 64, (3, 3), padding = (1, 1), padding_mode = 'reflect', groups = 64)
             self.conv2_pointwise = nn.Conv2d(64, 64, (1, 1))
             self.conv2 = nn.Sequential(self.conv2_depthwise, self.conv2_pointwise)
@@ -26,13 +38,15 @@ class ESPCN(nn.Module):
 
         self._initialize_weights(upscale_factor, separable)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # Optimized forward pass with inplace operations
+        # Use functional dropout with explicit training flag for JIT trace compatibility
         x = self.relu(self.conv1(x))
-        x = self.dropout(x)
+        x = nn.functional.dropout(x, p=self.dropout_rate, training=self.training)
         x = self.relu(self.conv2(x))
-        x = self.dropout(x)
+        x = nn.functional.dropout(x, p=self.dropout_rate, training=self.training)
         x = self.relu(self.conv3(x))
-        x = self.dropout(x)
+        x = nn.functional.dropout(x, p=self.dropout_rate, training=self.training)
         x = self.conv4(x)
         x = self.pixel_shuffle(x)
         x = self.smoothing(x)
