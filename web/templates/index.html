@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
 </head>
+
 <body>
     <div class="app-container">
         <!-- Sidebar Navigation -->
@@ -21,6 +23,10 @@
                 <li class="nav-item active" data-tab="dashboard">
                     <i class="fas fa-chart-line"></i>
                     <span>Dashboard</span>
+                </li>
+                <li class="nav-item" data-tab="autoconfig">
+                    <i class="fas fa-wand-magic-sparkles"></i>
+                    <span>Auto-Config</span>
                 </li>
                 <li class="nav-item" data-tab="training">
                     <i class="fas fa-dumbbell"></i>
@@ -59,14 +65,16 @@
                     <h2>Dashboard</h2>
                     <p>Overview of training progress and system resources</p>
                 </div>
-                
+
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon cpu"><i class="fas fa-microchip"></i></div>
                         <div class="stat-info">
                             <span class="stat-label">CPU Usage</span>
                             <span class="stat-value" id="cpu-usage">0%</span>
-                            <div class="progress-bar"><div class="progress" id="cpu-progress"></div></div>
+                            <div class="progress-bar">
+                                <div class="progress" id="cpu-progress"></div>
+                            </div>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -74,7 +82,9 @@
                         <div class="stat-info">
                             <span class="stat-label">Memory</span>
                             <span class="stat-value" id="memory-usage">0%</span>
-                            <div class="progress-bar"><div class="progress" id="memory-progress"></div></div>
+                            <div class="progress-bar">
+                                <div class="progress" id="memory-progress"></div>
+                            </div>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -82,7 +92,9 @@
                         <div class="stat-info">
                             <span class="stat-label">GPU</span>
                             <span class="stat-value" id="gpu-status">N/A</span>
-                            <div class="progress-bar"><div class="progress" id="gpu-progress"></div></div>
+                            <div class="progress-bar">
+                                <div class="progress" id="gpu-progress"></div>
+                            </div>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -163,7 +175,208 @@
                 </div>
             </section>
 
-            <!-- Training Tab -->
+            <!-- Auto-Config Tab -->
+            <section class="tab-content" id="autoconfig-tab">
+                <div class="page-header">
+                    <h2>Auto-Configuration</h2>
+                    <p>Detect hardware and automatically optimize settings</p>
+                </div>
+
+                <div class="autoconfig-grid">
+                    <!-- Hardware Detection Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-microchip"></i> Hardware Detection</h3>
+                            <button class="btn btn-primary" id="btn-detect-hardware">
+                                <i class="fas fa-sync"></i> Detect Hardware
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="loading-state" id="hardware-loading" style="display: none;">
+                                <i class="fas fa-spinner fa-spin"></i> Detecting hardware...
+                            </div>
+                            <div class="hardware-specs" id="hardware-specs" style="display: none;">
+                                <div class="specs-section">
+                                    <h4><i class="fas fa-server"></i> Platform</h4>
+                                    <p><strong>OS:</strong> <span id="spec-platform">-</span></p>
+                                    <p><strong>Release:</strong> <span id="spec-platform-release">-</span></p>
+                                </div>
+                                <div class="specs-section">
+                                    <h4><i class="fas fa-microchip"></i> CPU</h4>
+                                    <p><strong>Physical Cores:</strong> <span id="spec-cpu-physical">-</span></p>
+                                    <p><strong>Logical Cores:</strong> <span id="spec-cpu-logical">-</span></p>
+                                </div>
+                                <div class="specs-section">
+                                    <h4><i class="fas fa-memory"></i> Memory</h4>
+                                    <p><strong>Total RAM:</strong> <span id="spec-ram-total">-</span> GB</p>
+                                    <p><strong>Available:</strong> <span id="spec-ram-available">-</span> GB</p>
+                                </div>
+                                <div class="specs-section">
+                                    <h4><i class="fas fa-video"></i> GPU</h4>
+                                    <p><strong>Recommended Device:</strong> <span class="badge"
+                                            id="spec-device">-</span></p>
+                                    <p id="gpu-details"></p>
+                                </div>
+                            </div>
+                            <div class="hardware-error" id="hardware-error" style="display: none;">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <p id="hardware-error-message"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Performance Tier Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-chart-bar"></i> Performance Tier</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="tier-display" id="tier-display" style="display: none;">
+                                <div class="tier-badge" id="tier-badge">
+                                    <span id="tier-name">-</span>
+                                </div>
+                                <div class="tier-description" id="tier-description">
+                                    <!-- Description will be filled dynamically -->
+                                </div>
+                            </div>
+                            <div class="tier-placeholder">
+                                <p><i class="fas fa-info-circle"></i> Run hardware detection to see your performance
+                                    tier</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recommendations Card -->
+                    <div class="card wide-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-lightbulb"></i> Recommended Settings</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="recommendations-grid" id="recommendations-grid" style="display: none;">
+                                <div class="rec-section">
+                                    <h4>Device Settings</h4>
+                                    <div class="rec-item">
+                                        <span>Compute Device:</span>
+                                        <strong id="rec-device">-</strong>
+                                    </div>
+                                    <div class="rec-item">
+                                        <span>Mixed Precision:</span>
+                                        <strong id="rec-mixed-precision">-</strong>
+                                    </div>
+                                    <div class="rec-item">
+                                        <span>Channels Last:</span>
+                                        <strong id="rec-channels-last">-</strong>
+                                    </div>
+                                </div>
+                                <div class="rec-section">
+                                    <h4>Performance Tuning</h4>
+                                    <div class="rec-item">
+                                        <span>Batch Size (Train):</span>
+                                        <strong id="rec-batch-size">-</strong>
+                                    </div>
+                                    <div class="rec-item">
+                                        <span>Batch Size (Test):</span>
+                                        <strong id="rec-test-batch-size">-</strong>
+                                    </div>
+                                    <div class="rec-item">
+                                        <span>Worker Threads:</span>
+                                        <strong id="rec-threads">-</strong>
+                                    </div>
+                                    <div class="rec-item">
+                                        <span>Cache Dataset:</span>
+                                        <strong id="rec-cache-dataset">-</strong>
+                                    </div>
+                                </div>
+                                <div class="rec-section">
+                                    <h4>Advanced Optimizations</h4>
+                                    <div class="rec-item">
+                                        <span>Compile Model:</span>
+                                        <strong id="rec-compile">-</strong>
+                                    </div>
+                                    <div class="rec-item">
+                                        <span>Fused Optimizer:</span>
+                                        <strong id="rec-fused-opt">-</strong>
+                                    </div>
+                                    <div class="rec-item">
+                                        <span>Persistent Workers:</span>
+                                        <strong id="rec-persistent">-</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="recommendations-placeholder">
+                                <p><i class="fas fa-info-circle"></i> Run hardware detection to see recommendations</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Settings Comparison Card -->
+                    <div class="card wide-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-balance-scale"></i> Settings Comparison</h3>
+                            <button class="btn btn-secondary" id="btn-compare-settings">
+                                <i class="fas fa-sync"></i> Compare
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="comparison-table" id="comparison-table" style="display: none;">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Setting</th>
+                                            <th>Current Value</th>
+                                            <th>Recommended</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="comparison-tbody">
+                                        <!-- Rows will be filled dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="comparison-placeholder">
+                                <p><i class="fas fa-info-circle"></i> Click Compare to see differences</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="card wide-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-cogs"></i> Apply Configuration</h3>
+                        </div>
+                        <div class="card-body action-section">
+                            <div class="form-group">
+                                <label>Upscale Factor</label>
+                                <select id="autoconfig-upscale-factor">
+                                    <option value="2">2x (fastest, least memory)</option>
+                                    <option value="3">3x (balanced)</option>
+                                    <option value="4">4x (slower, more memory)</option>
+                                    <option value="8">8x (slowest, most memory)</option>
+                                </select>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <label>
+                                    <input type="checkbox" id="autoconfig-backup" checked>
+                                    <span>Create backup before applying (recommended)</span>
+                                </label>
+                            </div>
+                            <p style="font-size: 0.9em; color: #666; margin: 10px 0;">
+                                <i class="fas fa-shield-alt"></i>
+                                Auto-configuration preserves your custom settings (paths, epochs, seeds) and only
+                                optimizes hardware-specific parameters.
+                            </p>
+                            <div class="action-buttons">
+                                <button class="btn btn-primary btn-large" id="btn-apply-autoconfig">
+                                    <i class="fas fa-magic"></i> Apply Auto-Configuration
+                                </button>
+                                <button class="btn btn-secondary" id="btn-download-autoconfig">
+                                    <i class="fas fa-download"></i> Download Config (Don't Apply)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
             <section class="tab-content" id="training-tab">
                 <div class="page-header">
                     <h2>Training Control</h2>
@@ -207,19 +420,26 @@
                                     <label>Optimizer</label>
                                     <select id="train-optimizer">
                                         <option value="adam">Adam</option>
+                                        <option value="adamw">AdamW</option>
                                         <option value="sgd">SGD</option>
                                     </select>
                                 </div>
-                                <div class="form-group checkbox-group">
-                                    <label>
-                                        <input type="checkbox" id="train-tuning">
-                                        <span>Enable Hyperparameter Tuning</span>
-                                    </label>
+                                <div class="form-group">
+                                    <label>Momentum (for SGD)</label>
+                                    <input type="number" id="train-momentum" value="0.9" step="0.01" min="0" max="1">
+                                </div>
+                                <div class="form-group">
+                                    <label>Weight Decay</label>
+                                    <input type="number" id="train-weight-decay" value="0.0" step="0.0001" min="0">
+                                </div>
+                                <div class="form-group">
+                                    <label>Checkpoint Frequency (every N epochs)</label>
+                                    <input type="number" id="train-checkpoint-freq" value="100" min="1">
                                 </div>
                                 <div class="form-group checkbox-group">
                                     <label>
-                                        <input type="checkbox" id="train-mixed-precision" checked>
-                                        <span>Mixed Precision Training</span>
+                                        <input type="checkbox" id="train-mixed-precision">
+                                        <span>Mixed Precision Training (CUDA only)</span>
                                     </label>
                                 </div>
                                 <div class="form-group checkbox-group">
@@ -227,6 +447,32 @@
                                         <input type="checkbox" id="train-scheduler" checked>
                                         <span>Use Learning Rate Scheduler</span>
                                     </label>
+                                </div>
+                                <div class="form-group checkbox-group">
+                                    <label>
+                                        <input type="checkbox" id="train-channels-last">
+                                        <span>Channels Last Format</span>
+                                    </label>
+                                </div>
+                                <div class="form-group checkbox-group">
+                                    <label>
+                                        <input type="checkbox" id="train-compile-model">
+                                        <span>Compile Model (PyTorch 2.0+)</span>
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>Gradient Accumulation Steps</label>
+                                    <input type="number" id="train-gradient-accum" value="1" min="1" max="10">
+                                </div>
+                                <div class="form-group checkbox-group">
+                                    <label>
+                                        <input type="checkbox" id="train-enable-tuning">
+                                        <span>Run hyperparameter tuning before training</span>
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label>Tuning Trials</label>
+                                    <input type="number" id="train-trials" value="50" min="1">
                                 </div>
                             </form>
                         </div>
@@ -273,9 +519,24 @@
                             </div>
                             <div class="form-group checkbox-group">
                                 <label>
-                                    <input type="checkbox" id="train-optimized">
-                                    <span>Object-Aware ESPCN</span>
+                                    <input type="checkbox" id="train-use-bn">
+                                    <span>Batch Normalization</span>
                                 </label>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <label>
+                                    <input type="checkbox" id="train-optimized">
+                                    <span>Object-Aware ESPCN (Class-specific SR)</span>
+                                </label>
+                            </div>
+                            <div class="form-group" id="num-classes-group" style="display:none;">
+                                <label>Number of Classes</label>
+                                <input type="number" id="train-num-classes" value="5" min="1" max="20">
+                            </div>
+                            <div class="form-group">
+                                <label>Dropout Rate</label>
+                                <input type="range" id="train-dropout-rate" min="0" max="0.5" step="0.05" value="0">
+                                <span id="dropout-rate-value">0.0</span>
                             </div>
                             <div class="form-group checkbox-group">
                                 <label>
@@ -287,6 +548,50 @@
                                 <label>Prune Amount</label>
                                 <input type="range" id="train-prune-amount" min="0" max="0.5" step="0.05" value="0.1">
                                 <span id="prune-amount-value">0.1</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-flask"></i> Advanced Optimization</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group checkbox-group">
+                                <label>
+                                    <input type="checkbox" id="train-cache-dataset">
+                                    <span>Cache Dataset in RAM</span>
+                                </label>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <label>
+                                    <input type="checkbox" id="train-fused-optimizer">
+                                    <span>Use Fused Optimizer (CUDA only)</span>
+                                </label>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <label>
+                                    <input type="checkbox" id="train-persistent-workers">
+                                    <span>Persistent Workers</span>
+                                </label>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <label>
+                                    <input type="checkbox" id="train-early-stopping" checked>
+                                    <span>Early Stopping</span>
+                                </label>
+                            </div>
+                            <div class="form-group" id="early-stopping-group">
+                                <label>Early Stopping Patience (epochs)</label>
+                                <input type="number" id="train-es-patience" value="50" min="1">
+                            </div>
+                            <div class="form-group" id="target-psnr-group">
+                                <label>Target Minimum PSNR (dB)</label>
+                                <input type="number" id="train-target-psnr" value="26" min="0" step="0.5">
+                            </div>
+                            <div class="form-group" id="stuck-level-group">
+                                <label>Stuck Level (restart if stuck below target)</label>
+                                <input type="number" id="train-stuck-level" value="30" min="1">
                             </div>
                         </div>
                     </div>
@@ -508,4 +813,5 @@
 
     <script src="/static/js/app.js"></script>
 </body>
+
 </html>

@@ -54,6 +54,12 @@ class Settings(metaclass=Singleton):
     def __init__(self):
         with open("settings.yaml", 'r') as stream:
             self.dictionary = yaml.load(stream, Loader=Loader)
+        
+        # Configure logging verbosity first (before other imports trigger loggers)
+        self._verbose_logging = self.dictionary.get('verbose_logging', False)
+        from custom_logger import set_verbose_logging
+        set_verbose_logging(self._verbose_logging)
+        
         self._input_path = self.dictionary['input_path']
         self._output_path = self.dictionary['output_path']
         self._model_path = self.dictionary['model_path']
@@ -78,6 +84,8 @@ class Settings(metaclass=Singleton):
         self._psnr_delta = self.dictionary['psnr_delta']
         self._stuck_level = self.dictionary['stuck_level']
         self._target_min_psnr = self.dictionary['target_min_psnr']
+        self._early_stopping = self.dictionary.get('early_stopping', True)
+        self._early_stopping_patience = self.dictionary.get('early_stopping_patience', 50)
         self._cuda = self.dictionary['cuda']
         self._mps = self.dictionary.get('mps', False)
         self._tuning = self.dictionary['tuning']
@@ -89,6 +97,8 @@ class Settings(metaclass=Singleton):
         self._optimized = self.dictionary['optimized']
         self._num_classes = self.dictionary['num_classes']
         self._separable = self.dictionary['separable']
+        self._dropout_rate = self.dictionary.get('dropout_rate', 0.0)
+        self._use_bn = self.dictionary.get('use_bn', False)
         self._scheduler_enabled = self.dictionary['scheduler']
         self._pruning = self.dictionary['pruning']
         self._prune_amount = self.dictionary['prune_amount']
@@ -99,9 +109,24 @@ class Settings(metaclass=Singleton):
         self._profiler = self.dictionary['show_profiler']
         self._show_result = self.dictionary['show_result']
         self._cycles = self.dictionary['cycles']
+        
+        # New optimization settings
+        self._gradient_accumulation_steps = self.dictionary.get('gradient_accumulation_steps', 1)
+        self._use_fused_optimizer = self.dictionary.get('use_fused_optimizer', False)
+        self._cache_dataset = self.dictionary.get('cache_dataset', False)
+        self._compile_mode = self.dictionary.get('compile_mode', 'default')  # default, reduce-overhead, max-autotune
+        
         train_set = get_training_set(self._upscale_factor)
         test_set = get_test_set(self._upscale_factor)
         val_set = get_validation_set(self._upscale_factor)
+        
+        # Cache datasets in RAM if enabled (eliminates I/O bottleneck)
+        if self._cache_dataset:
+            from data import CachedDataset
+            train_set = CachedDataset(train_set)
+            test_set = CachedDataset(test_set)
+            val_set = CachedDataset(val_set)
+        
         if self._optimized:
             from model_ench import ObjectAwareESPCN as espcn
             self._pruning = False
@@ -129,7 +154,20 @@ class Settings(metaclass=Singleton):
             torch.backends.cuda.matmul.allow_tf32 = True
             torch.backends.cudnn.allow_tf32 = True
         
-        self._model = espcn(self._num_classes, self._upscale_factor, separable = self._separable)
+        # Create model with new interface
+        if self._optimized:
+            self._model = espcn(
+                num_classes=self._num_classes,
+                upscale_factor=self._upscale_factor,
+                separable=self._separable
+            )
+        else:
+            self._model = espcn(
+                upscale_factor=self._upscale_factor,
+                separable=self._separable,
+                dropout_rate=self._dropout_rate,
+                use_bn=self._use_bn
+            )
         
         if self._channels_last:
             self._model = self._model.to(memory_format=torch.channels_last)
@@ -140,15 +178,40 @@ class Settings(metaclass=Singleton):
         
         if self._compile and hasattr(torch, 'compile') and not (self._mps and torch.backends.mps.is_available()):
             try:
-                self._model = torch.compile(self._model, backend='inductor', mode='reduce-overhead')
+                # Compile modes: default (balanced), reduce-overhead (lower latency), max-autotune (best perf)
+                compile_mode = self._compile_mode if self._compile_mode in ['default', 'reduce-overhead', 'max-autotune'] else 'default'
+                self._model = torch.compile(self._model, backend='inductor', mode=compile_mode)
             except Exception as e:
                 import logging
                 logging.warning(f"torch.compile failed, continuing without compilation: {e}")
         
         self._criterion = nn.MSELoss().to(self._device)
-        self._optimizer = optim.Adam(self._model.parameters(), lr=self._lr, weight_decay=self._weight_decay)
+        
+        # Use fused optimizers when available for ~10-20% speedup
+        fused_available = self._use_fused_optimizer and self._device.type == 'cuda'
+        
         if self._optimizer_type == 'SGD':
-            self._optimizer = optim.SGD(self._model.parameters(), lr=self._lr, momentum=self._momentum, weight_decay=self._weight_decay)
+            self._optimizer = optim.SGD(
+                self._model.parameters(), 
+                lr=self._lr, 
+                momentum=self._momentum, 
+                weight_decay=self._weight_decay,
+                fused=fused_available
+            )
+        elif self._optimizer_type.lower() == 'adamw':
+            self._optimizer = optim.AdamW(
+                self._model.parameters(), 
+                lr=self._lr, 
+                weight_decay=self._weight_decay,
+                fused=fused_available
+            )
+        else:  # Adam
+            self._optimizer = optim.Adam(
+                self._model.parameters(), 
+                lr=self._lr, 
+                weight_decay=self._weight_decay,
+                fused=fused_available
+            )
         # Determine device type for GradScaler (MPS uses CPU scaler as MPS doesn't support native AMP scaler)
         device_type = str(self._device.type)
         scaler_enabled = self._mp and device_type == 'cuda'  # AMP GradScaler only supported on CUDA
@@ -317,6 +380,14 @@ class Settings(metaclass=Singleton):
         return self._target_min_psnr
 
     @property
+    def early_stopping(self):
+        return self._early_stopping
+
+    @property
+    def early_stopping_patience(self):
+        return self._early_stopping_patience
+
+    @property
     def cuda(self):
         return self._cuda
 
@@ -464,12 +535,47 @@ class Settings(metaclass=Singleton):
         name += f"_seed({self._seed})_batch_size({self._batch_size})"
         return name
 
+    @property
+    def dropout_rate(self):
+        return self._dropout_rate
+
+    @property
+    def use_bn(self):
+        return self._use_bn
+
+    @property
+    def gradient_accumulation_steps(self):
+        return self._gradient_accumulation_steps
+    
+    @property
+    def use_fused_optimizer(self):
+        return self._use_fused_optimizer
+    
+    @property
+    def cache_dataset(self):
+        return self._cache_dataset
+    
+    @property
+    def compile_mode(self):
+        return self._compile_mode
+
     def create_model(self):
+        """Create a new model instance with current settings."""
         if self.optimized:
             from model_ench import ObjectAwareESPCN as espcn
+            model = espcn(
+                num_classes=self.num_classes,
+                upscale_factor=self.upscale_factor,
+                separable=self.separable
+            )
         else:
             from model import ESPCN as espcn
-        model = espcn(upscale_factor=self.upscale_factor, num_classes=self.num_classes, separable=self.separable)
+            model = espcn(
+                upscale_factor=self.upscale_factor,
+                separable=self.separable,
+                dropout_rate=self._dropout_rate,
+                use_bn=self._use_bn
+            )
         
         # Apply channels_last memory format if enabled
         if self._channels_last:
@@ -478,7 +584,13 @@ class Settings(metaclass=Singleton):
         model = model.to(self.device)
         
         if self.preload and exists(self.preload_path):
-            model = torch.load(self.preload_path, weights_only=False, map_location=self.device)
+            # Load state dict for new checkpoint format
+            checkpoint_data = torch.load(self.preload_path, weights_only=False, map_location=self.device)
+            if isinstance(checkpoint_data, dict) and 'state_dict' not in checkpoint_data:
+                # Old format: entire model saved
+                model = checkpoint_data
+            else:
+                model.load_state_dict(checkpoint_data)
         
         return model
 

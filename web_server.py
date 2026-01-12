@@ -8,6 +8,7 @@ import multiprocessing
 import os
 import platform
 import queue
+import shutil
 import signal
 import subprocess
 import sys
@@ -53,6 +54,7 @@ training_state = {
     'mode': None,  # 'train', 'demo', 'tune'
     'process': None,
     'start_time': None,
+    'elapsed': 0.0,
     'progress': {
         'current_epoch': 0,
         'total_epochs': 0,
@@ -66,6 +68,23 @@ training_state = {
 }
 
 log_queue = queue.Queue(maxsize=1000)
+
+
+def _safe_relative_path(base: Path, target: Path) -> Path:
+    """Ensure target stays within base directory."""
+    resolved_base = base.resolve()
+    resolved_target = target.resolve()
+    if resolved_base not in resolved_target.parents and resolved_base != resolved_target:
+        raise ValueError("Invalid path outside allowed directory")
+    return resolved_target
+
+
+def _current_elapsed_time() -> float:
+    """Return elapsed time, frozen when not running."""
+    elapsed = training_state.get('elapsed', 0.0) or 0.0
+    if training_state.get('is_running') and training_state.get('start_time'):
+        elapsed += max(0.0, time.time() - training_state['start_time'])
+    return elapsed
 
 
 # ============== Utility Functions ==============
@@ -180,7 +199,7 @@ def get_gpu_stats():
 
 
 def get_available_models():
-    """List all available trained models."""
+    """List all available trained models with only the latest checkpoint."""
     models = []
     models_path = Path(MODELS_DIR)
     
@@ -188,18 +207,22 @@ def get_available_models():
         for model_dir in models_path.iterdir():
             if model_dir.is_dir():
                 checkpoints = list(model_dir.glob('*.pth'))
+                # Get only the latest checkpoint (most recently modified)
+                latest_checkpoint = None
+                if checkpoints:
+                    latest_checkpoint = max(checkpoints, key=lambda x: x.stat().st_mtime)
+                
                 model_info = {
                     'name': model_dir.name,
                     'path': str(model_dir),
                     'checkpoints': [
                         {
-                            'name': ckp.name,
-                            'path': str(ckp),
-                            'size': ckp.stat().st_size,
-                            'modified': datetime.fromtimestamp(ckp.stat().st_mtime).isoformat()
+                            'name': latest_checkpoint.name,
+                            'path': str(latest_checkpoint),
+                            'size': latest_checkpoint.stat().st_size,
+                            'modified': datetime.fromtimestamp(latest_checkpoint.stat().st_mtime).isoformat()
                         }
-                        for ckp in sorted(checkpoints, key=lambda x: x.stat().st_mtime, reverse=True)
-                    ],
+                    ] if latest_checkpoint else [],
                     'has_logs': (model_dir / 'logs').exists(),
                     'has_times': (model_dir / 'times').exists()
                 }
@@ -240,23 +263,44 @@ def run_training_process(mode='train'):
     global training_state
     
     training_state['is_running'] = True
-    training_state['mode'] = mode
+    training_state['elapsed'] = 0.0
     training_state['start_time'] = time.time()
-    training_state['progress']['message'] = f'Starting {mode}...'
     training_state['progress']['current_epoch'] = 0
     training_state['progress']['psnr'] = 0
     training_state['progress']['best_psnr'] = 0
     training_state['progress']['current_loss'] = 0
     training_state['logs'] = []
-    
+
     try:
         # Set mode in settings and get epochs for progress display
         settings = load_settings()
-        settings['mode'] = mode
+        tuning_enabled = settings.get('tuning', False)
+        trials = settings.get('trials', 0)
+        # Always save mode as 'train' when launching tuning so main.py runs both stages
+        mode_to_save = 'train' if mode in ('train', 'tune') else mode
+        settings['mode'] = mode_to_save
         save_settings(settings)
-        
-        # Initialize total_epochs from settings for immediate progress display
-        training_state['progress']['total_epochs'] = settings.get('epochs_number', settings.get('epoch', 0))
+
+        effective_label = 'tune' if tuning_enabled and mode_to_save == 'train' else mode_to_save
+        training_state['mode'] = effective_label
+        training_state['progress']['message'] = 'Starting tuning...' if effective_label == 'tune' else f'Starting {mode_to_save}...'
+
+        # Initialize total_epochs for UI progress bar
+        if effective_label == 'tune' and trials:
+            training_state['progress']['total_epochs'] = trials
+        elif effective_label == 'demo':
+            def count_demo_items(cfg):
+                input_path = cfg.get('input_path') or ''
+                cycles = cfg.get('cycles', 1)
+                if os.path.isfile(input_path):
+                    return 1
+                search_dir = input_path if os.path.isdir(input_path) else './dataset/BSDS500/images/test/'
+                images = [f for f in os.listdir(search_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+                return min(len(images), cycles) if images else 0
+
+            training_state['progress']['total_epochs'] = count_demo_items(settings)
+        else:
+            training_state['progress']['total_epochs'] = settings.get('epochs_number', settings.get('epoch', 0))
         
         # Run the main script with unbuffered output
         env = os.environ.copy()
@@ -271,6 +315,12 @@ def run_training_process(mode='train'):
             env=env
         )
         training_state['process'] = process
+        
+        # Log that training has started
+        training_state['logs'].append({
+            'timestamp': datetime.now().isoformat(),
+            'message': f'Process started (PID: {process.pid})'
+        })
         
         # Read output in real-time
         for line in iter(process.stdout.readline, ''):
@@ -297,8 +347,11 @@ def run_training_process(mode='train'):
         })
     finally:
         training_state['is_running'] = False
+        # Freeze elapsed time when process ends
+        training_state['elapsed'] = _current_elapsed_time()
+        training_state['start_time'] = None
         training_state['process'] = None
-        training_state['progress']['message'] = 'Completed' if mode != 'tune' else 'Tuning completed'
+        training_state['progress']['message'] = 'Completed' if training_state.get('mode') != 'tune' else 'Tuning completed'
 
 
 def parse_training_log(line):
@@ -307,18 +360,52 @@ def parse_training_log(line):
     import re
     
     line = line.strip()
+
+    # Track stage transitions
+    if 'Tuning mode' in line:
+        training_state['mode'] = 'tune'
+        training_state['progress']['message'] = 'Tuning in progress...'
+    if 'Training mode' in line:
+        training_state['mode'] = 'train'
+        training_state['progress']['current_epoch'] = 0
+        training_state['progress']['psnr'] = 0
+        training_state['progress']['best_psnr'] = 0
+        training_state['progress']['message'] = 'Training in progress...'
+    if 'Demo mode' in line:
+        training_state['mode'] = 'demo'
+        training_state['progress']['message'] = 'Demo in progress...'
+
+    # Parse tuning progress: "Tuning trial X/Y"
+    tune_match = re.search(r'Tuning\s+trial\s+(\d+)(?:/(\d+))?', line, re.IGNORECASE)
+    if tune_match:
+        trial_num = int(tune_match.group(1))
+        training_state['progress']['current_epoch'] = trial_num
+        if tune_match.group(2):
+            training_state['progress']['total_epochs'] = int(tune_match.group(2))
+        total_trials = training_state['progress'].get('total_epochs') or '?'
+        training_state['progress']['message'] = f"Tuning trial {trial_num}/{total_trials}"
+
+    # Parse demo progress: "Demo progress X/Y"
+    demo_match = re.search(r'Demo\s+progress\s+(\d+)/(\d+)', line, re.IGNORECASE)
+    if demo_match:
+        current = int(demo_match.group(1))
+        total = int(demo_match.group(2))
+        training_state['mode'] = 'demo'
+        training_state['progress']['current_epoch'] = current
+        training_state['progress']['total_epochs'] = total
+        training_state['progress']['message'] = f"Demo {current}/{total}"
     
-    # Parse epoch information: "Epoch 1/2000 Complete: Avg. Loss: 0.123..."
-    epoch_match = re.search(r'Epoch\s+(\d+)/(\d+)\s+Complete', line)
+    # Parse epoch information: "Epoch 1/2000 | Train Loss: 0.123... | Val Loss: 0.456..."
+    epoch_match = re.search(r'Epoch\s+(\d+)/(\d+)\s*\|', line)
     if epoch_match:
         training_state['progress']['current_epoch'] = int(epoch_match.group(1))
         training_state['progress']['total_epochs'] = int(epoch_match.group(2))
     
-    # Parse average loss from epoch completion: "Avg. Loss: 0.000123456789"
-    avg_loss_match = re.search(r'Avg\.\s*Loss:\s*([\d.e+-]+)', line)
-    if avg_loss_match:
+    # Parse train loss from epoch line: "Train Loss: 0.000123456789"
+    train_loss_match = re.search(r'Train\s+Loss:\s*([\d.e+-]+)', line)
+    if train_loss_match:
         try:
-            training_state['progress']['current_loss'] = float(avg_loss_match.group(1))
+            training_state['progress']['current_loss'] = float(train_loss_match.group(1))
         except ValueError:
             pass
     
@@ -334,7 +421,7 @@ def parse_training_log(line):
             pass
     
     # Parse upscale factor and epochs from initial log: "Upscale factor: 2 | Epochs: 2000"
-    init_match = re.search(r'Upscale factor:\s*(\d+)\s*\|\s*Epochs:\s*(\d+)', line)
+    init_match = re.search(r'Upscale\s+factor:\s*(\d+)\s*\|\s*Epochs:\s*(\d+)', line)
     if init_match:
         training_state['progress']['total_epochs'] = int(init_match.group(2))
         training_state['progress']['message'] = f"Initializing {init_match.group(1)}x model..."
@@ -400,7 +487,7 @@ def api_stats_stream():
                 'is_running': training_state['is_running'],
                 'mode': training_state['mode'],
                 'progress': training_state['progress'],
-                'elapsed_time': time.time() - training_state['start_time'] if training_state['start_time'] else 0
+                'elapsed_time': _current_elapsed_time()
             }
             yield f"data: {json.dumps(stats)}\n\n"
             time.sleep(1)
@@ -414,10 +501,50 @@ def api_get_models():
     return jsonify(get_available_models())
 
 
+@app.route('/api/models/delete', methods=['POST'])
+def api_delete_model():
+    """Delete a model directory and its contents."""
+    try:
+        model_name = request.json.get('name')
+        if not model_name:
+            return jsonify({'success': False, 'message': 'Model name required'}), 400
+        target = _safe_relative_path(Path(MODELS_DIR), Path(MODELS_DIR) / model_name)
+        if not target.exists():
+            return jsonify({'success': False, 'message': 'Model not found'}), 404
+        if not target.is_dir():
+            return jsonify({'success': False, 'message': 'Invalid model path'}), 400
+        shutil.rmtree(target)
+        return jsonify({'success': True, 'message': 'Model deleted'})
+    except ValueError as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @app.route('/api/results', methods=['GET'])
 def api_get_results():
     """Get list of result images."""
     return jsonify(get_results())
+
+
+@app.route('/api/results/delete', methods=['POST'])
+def api_delete_result_set():
+    """Delete a result directory."""
+    try:
+        result_name = request.json.get('name')
+        if not result_name:
+            return jsonify({'success': False, 'message': 'Result name required'}), 400
+        target = _safe_relative_path(Path(RESULTS_DIR), Path(RESULTS_DIR) / result_name)
+        if not target.exists():
+            return jsonify({'success': False, 'message': 'Result set not found'}), 404
+        if not target.is_dir():
+            return jsonify({'success': False, 'message': 'Invalid result path'}), 400
+        shutil.rmtree(target)
+        return jsonify({'success': True, 'message': 'Result set deleted'})
+    except ValueError as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 @app.route('/api/results/<path:filepath>')
@@ -433,14 +560,32 @@ def api_start_training():
     
     if training_state['is_running']:
         return jsonify({'success': False, 'message': 'Training already in progress'}), 400
-    
-    mode = request.json.get('mode', 'train')
-    
+
+    payload = request.json or {}
+    mode = payload.get('mode', 'train')
+    tuning_requested = payload.get('tuning')
+    trials_requested = payload.get('trials')
+
+    settings = load_settings()
+    if tuning_requested is not None:
+        settings['tuning'] = bool(tuning_requested)
+    if trials_requested is not None:
+        try:
+            settings['trials'] = int(trials_requested)
+        except (TypeError, ValueError):
+            pass
+
+    # Ensure main.py runs training path even when tuning is enabled
+    settings['mode'] = 'train' if mode in ('train', 'tune') else mode
+    save_settings(settings)
+
+    effective_mode = 'tune' if settings.get('tuning') and settings['mode'] == 'train' else settings['mode']
+
     # Start training in background thread
-    thread = threading.Thread(target=run_training_process, args=(mode,), daemon=True)
+    thread = threading.Thread(target=run_training_process, args=(effective_mode,), daemon=True)
     thread.start()
     
-    return jsonify({'success': True, 'message': f'{mode.capitalize()} started'})
+    return jsonify({'success': True, 'message': f'{effective_mode.capitalize()} started'})
 
 
 @app.route('/api/training/stop', methods=['POST'])
@@ -453,6 +598,8 @@ def api_stop_training():
     
     if training_state['process']:
         training_state['process'].terminate()
+        training_state['elapsed'] = _current_elapsed_time()
+        training_state['start_time'] = None
         training_state['is_running'] = False
         training_state['progress']['message'] = 'Stopped by user'
     
@@ -467,7 +614,7 @@ def api_training_status():
         'is_paused': training_state['is_paused'],
         'mode': training_state['mode'],
         'progress': training_state['progress'],
-        'elapsed_time': time.time() - training_state['start_time'] if training_state['start_time'] else 0
+        'elapsed_time': _current_elapsed_time()
     })
 
 
@@ -606,6 +753,142 @@ def api_get_model_logs(model_name):
         result['psnrs'] = psnr_path.read_text().strip().split('\n')
     
     return jsonify(result)
+
+
+# ============== AutoConfig Routes ==============
+
+@app.route('/api/autoconfig/detect', methods=['GET'])
+def api_autoconfig_detect():
+    """Detect hardware and get recommendations."""
+    try:
+        from autoconfig import AutoConfig, MachineSpecs
+        
+        upscale_factor = request.args.get('upscale_factor', 2, type=int)
+        
+        specs = MachineSpecs()
+        autoconfig = AutoConfig(specs, upscale_factor=upscale_factor)
+        
+        # Format hardware specs
+        hw_info = {
+            'platform': specs.platform,
+            'platform_release': specs.platform_release,
+            'cpu_cores': {
+                'physical': specs.physical_cores,
+                'logical': specs.logical_cores
+            },
+            'ram_gb': {
+                'total': round(specs.ram_gb, 2),
+                'available': round(specs.available_ram_gb, 2)
+            },
+            'gpu': {
+                'has_cuda': specs.has_cuda,
+                'has_mps': specs.has_mps,
+                'recommended_device': specs.recommended_device
+            }
+        }
+        
+        if specs.has_cuda:
+            hw_info['gpu']['cuda_device_count'] = specs.cuda_device_count
+            hw_info['gpu']['cuda_device_name'] = specs.cuda_device_name
+            hw_info['gpu']['cuda_memory_gb'] = round(specs.cuda_memory_gb, 2) if specs.cuda_memory_gb > 0 else 0
+        
+        # Get tier and recommendations
+        recommendations = {
+            'tier': autoconfig.tier.upper(),
+            'device_settings': autoconfig.get_device_settings(),
+            'training_settings': autoconfig.get_training_settings(),
+            'optimizer_settings': autoconfig.get_optimizer_settings(),
+            'complete_config': autoconfig.generate_config(SETTINGS_FILE)
+        }
+        
+        return jsonify({
+            'success': True,
+            'hardware': hw_info,
+            'recommendations': recommendations
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/autoconfig/apply', methods=['POST'])
+def api_autoconfig_apply():
+    """Apply autoconfiguration to settings."""
+    try:
+        from autoconfig import AutoConfig, MachineSpecs
+        
+        upscale_factor = request.json.get('upscale_factor')
+        create_backup = request.json.get('backup', True)
+        
+        # Load current settings for upscale factor if not specified
+        if upscale_factor is None:
+            current = load_settings()
+            upscale_factor = current.get('upscale_factor', 2)
+        
+        # Generate and apply configuration
+        specs = MachineSpecs()
+        autoconfig = AutoConfig(specs, upscale_factor=upscale_factor)
+        optimized_config = autoconfig.apply_to_current_settings(SETTINGS_FILE, backup=create_backup)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Autoconfiguration applied successfully',
+            'config': optimized_config,
+            'tier': autoconfig.tier.upper()
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/autoconfig/compare', methods=['GET'])
+def api_autoconfig_compare():
+    """Compare current settings with recommendations."""
+    try:
+        from autoconfig import AutoConfig, MachineSpecs
+        
+        current = load_settings()
+        upscale_factor = current.get('upscale_factor', 2)
+        
+        specs = MachineSpecs()
+        autoconfig = AutoConfig(specs, upscale_factor=upscale_factor)
+        recommended = autoconfig.generate_config(SETTINGS_FILE)
+        
+        # Group comparisons
+        categories = {
+            'device': ['cuda', 'mps', 'mixed_precision', 'channels_last', 'compile_model', 'compile_mode'],
+            'performance': ['batch_size', 'test_batch_size', 'threads', 'gradient_accumulation_steps', 
+                          'persistent_workers', 'cache_dataset', 'use_fused_optimizer'],
+            'optimizer': ['optimizer', 'learning_rate']
+        }
+        
+        comparison = {}
+        for category, keys in categories.items():
+            comparison[category] = {}
+            for key in keys:
+                comparison[category][key] = {
+                    'current': current.get(key),
+                    'recommended': recommended.get(key),
+                    'matches': current.get(key) == recommended.get(key)
+                }
+        
+        return jsonify({
+            'success': True,
+            'tier': autoconfig.tier.upper(),
+            'comparison': comparison
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
 def cleanup():

@@ -35,6 +35,41 @@ For training it uses the BSDS500 dataset.
 ## Usage
 All configurations are made in the [settings.yaml](settings.yaml) file.
 
+### ⚡ Quick Start with Auto-Configuration (Recommended)
+
+**NEW:** Automatically detect your hardware and configure optimal settings:
+
+```bash
+# Interactive configuration wizard (recommended for first-time users)
+poetry run python autoconfig_cli.py
+
+# Or show recommendations only
+poetry run python autoconfig_cli.py --info
+
+# Apply optimized settings directly to settings.yaml
+poetry run python autoconfig_cli.py --apply
+
+# Compare your current settings with recommendations
+poetry run python autoconfig_cli.py --compare
+
+# Train with auto-configuration
+poetry run python main.py --autoconfig
+```
+
+The autoconfiguration system detects:
+- **CPU**: Physical/logical cores for optimal worker threads
+- **RAM**: Available memory for batch size optimization
+- **GPU**: CUDA/MPS availability and VRAM for device-specific settings
+- **Platform**: OS-specific optimizations (Apple Silicon, CUDA, CPU)
+
+Based on hardware, it automatically configures:
+- Optimal batch sizes (train/test)
+- DataLoader worker threads
+- Device selection (CUDA > MPS > CPU)
+- Mixed precision training
+- Memory optimizations (channels_last, gradient accumulation)
+- Performance features (model compilation, fused optimizers)
+
 ### Training the Model
 To train the model, set the mode to `train` in [settings.yaml](settings.yaml):
 ```yaml
@@ -57,6 +92,22 @@ poetry run python main.py
 ```
 ## Configuration
 The settings.yaml file contains various configuration options:
+
+### Hardware Tiers
+
+The autoconfiguration system classifies your hardware into performance tiers:
+
+| Tier | Requirements | Optimizations |
+|------|-------------|---------------|
+| **ULTRA** | CUDA GPU (8+ GB VRAM) + 16+ GB RAM | Max batch sizes, torch.compile (max-autotune), FP16, fused optimizers, dataset caching |
+| **HIGH** | Any GPU + 8+ GB RAM + 4+ CPU cores | Good batch sizes, torch.compile, mixed precision, persistent workers |
+| **MEDIUM** | GPU + 4+ GB RAM OR 8+ GB RAM + 4+ cores | Moderate batch sizes, basic optimizations, gradient accumulation |
+| **LOW** | Limited resources | Small batch sizes, gradient accumulation (2x), conservative settings |
+
+### Manual Configuration
+
+If you prefer manual configuration, edit [settings.yaml](settings.yaml):
+
 ```yaml
 ---
 input_path: "path/to/images" # can be a directory with images or a single image
